@@ -14,10 +14,12 @@ import (
 	"github.com/tanzhongyan-org/template-go/internal/config"
 	"github.com/tanzhongyan-org/template-go/internal/db"
 	"github.com/tanzhongyan-org/template-go/internal/handler"
+	dbschema "github.com/tanzhongyan-org/template-go/sql"
 )
 
 func setupTestApp(t *testing.T) (*chi.Mux, *pgxpool.Pool) {
 	t.Helper()
+	t.Setenv("TRUST_IDENTITY_HEADER", "true")
 	cfg, err := config.Load()
 	if err != nil {
 		t.Fatalf("failed to load test config: %v", err)
@@ -29,7 +31,7 @@ func setupTestApp(t *testing.T) (*chi.Mux, *pgxpool.Pool) {
 		t.Fatalf("failed to connect to test database: %v", err)
 	}
 
-	if _, err := pool.Exec(ctx, schemaSQL); err != nil {
+	if _, err := pool.Exec(ctx, dbschema.Schema); err != nil {
 		t.Fatalf("failed to init test schema: %v", err)
 	}
 

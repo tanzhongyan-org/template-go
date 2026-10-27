@@ -3,34 +3,41 @@ name: Initialize Template Repository
 on:
   workflow_dispatch:
 
+permissions: {}
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false
+
 jobs:
   init-repo:
     # Only run on repositories created from the template, not on the template itself
     if: github.repository != 'tanzhongyan-org/template-go'
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     permissions:
       contents: write
     steps:
-      - uses: actions/checkout@v4
+      # This job pushes the rename commit, so it keeps the checkout credentials.
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1 # zizmor: ignore[artipacked]
 
       - name: Rename template placeholders
         run: |
           NEW_NAME="${GITHUB_REPOSITORY#*/}"
           NEW_MODULE="github.com/${GITHUB_REPOSITORY}"
           echo "Renaming template-go to $NEW_NAME..."
-          find . -type f \( -name "*.mod" -o -name "*.go" -o -name "*.md" -o -name "*.jsonc" -o -name "*.yml" -o -name "*.yaml" -o -name "Makefile" \) \
+          find . -type f \( -name "*.mod" -o -name "*.go" -o -name "*.md" -o -name "*.jsonc" -o -name "*.json" -o -name "*.yml" -o -name "*.yaml" -o -name "Makefile" \) \
             -not -path "*/.git/*" \
             -not -path "*/.github/*" \
             -exec sed -i "s|github.com/tanzhongyan-org/template-go|$NEW_MODULE|g" {} +
-          find . -type f \( -name "*.mod" -o -name "*.go" -o -name "*.md" -o -name "*.jsonc" -o -name "*.yml" -o -name "*.yaml" -o -name "Makefile" \) \
+          find . -type f \( -name "*.mod" -o -name "*.go" -o -name "*.md" -o -name "*.jsonc" -o -name "*.json" -o -name "*.yml" -o -name "*.yaml" -o -name "Makefile" \) \
             -not -path "*/.git/*" \
             -not -path "*/.github/*" \
             -exec sed -i "s/template-go/$NEW_NAME/g" {} +
 
-      - uses: actions/setup-go@f111f3307d8850f501ac008e886eec1fd1932a34 # v5.3.0
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
         with:
-          go-version: '1.27'
-          cache: true
+          go-version-file: go.mod
 
       - name: Tidy Go modules
         run: go mod tidy
@@ -42,3 +49,30 @@ jobs:
           git add -A
           git diff --staged --quiet || git commit -m "chore: initialize repository from template-go"
           git push
+
+  template-followups:
+    name: Open template follow-ups issue
+    needs: init-repo
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+      issues: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.ref }}
+          persist-credentials: false
+
+      - name: Create issue from TEMPLATE-TODO markers
+        run: |
+          {
+            echo "Replace each marker below, then remove it."
+            echo
+            echo '```text'
+            make --no-print-directory template-debt
+            echo '```'
+          } > body.md
+          gh issue create --title "Template follow-ups" --body-file body.md
+        env:
+          GH_TOKEN: ${{ github.token }}

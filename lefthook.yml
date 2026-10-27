@@ -1,22 +1,38 @@
 pre-commit:
   parallel: false
   commands:
-    govet:
-      run: go vet ./...
+    format:
+      glob: "*.go"
+      run: gofmt -w {staged_files}
+      stage_fixed: true
 
-    ast-grep-stubs:
-      run: npx --yes --package @ast-grep/cli@0.51.0 ast-grep scan
+    secrets:
+      run: |
+        if command -v gitleaks >/dev/null 2>&1; then
+          gitleaks git --staged --no-banner --redact
+        else
+          echo "gitleaks not found; install it from https://github.com/gitleaks/gitleaks#installing" >&2
+        fi
 
-    ai-slop-regex:
-      run: "! git diff --staged -U0 -- ':(exclude)*.md' | rg -i '\\b(as an ai language model|here is the (rest of the )?code|i hope this helps)\\b'"
+    anti-slop:
+      run: make anti-slop
+
+    policy:
+      run: make policy
 
 commit-msg:
   commands:
+    conventional-commit:
+      run: >-
+        grep -qE '^(feat|fix|docs|style|refactor|perf|test|build|ci|chore|revert)(\([a-z0-9._/-]+\))?!?: .+' {1}
+        || { echo "Commit subject must follow Conventional Commits: type(scope): summary" >&2; exit 1; }
     forbid-ai-trailers:
-      run: "! rg -i 'co-authored-by:.*(claude|copilot|assistant|gpt)' {1}"
+      run: "! grep -iE 'co-authored-by:.*(claude|copilot|assistant|gpt)' {1}"
 
 pre-push:
   parallel: false
   commands:
-    gotest:
-      run: go test -v ./...
+    verify:
+      run: make verify
+    unit-tests:
+      run: make test

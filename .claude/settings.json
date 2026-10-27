@@ -1,6 +1,30 @@
 {
+  "permissions": {
+    "deny": ["Read(.env)", "Read(.env.*)", "Read(!.env.example)"]
+  },
   "hooks": {
-    "afterEdit": "scripts/agent-hook.sh file-edit",
-    "stop": "scripts/agent-hook.sh finish-turn"
+    "PostToolUse": [
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "sh scripts/agent-hook.sh post-edit",
+            "timeout": 10
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "sh scripts/agent-hook.sh stop",
+            "timeout": 120
+          }
+        ]
+      }
+    ]
   }
 }

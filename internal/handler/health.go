@@ -1,7 +1,6 @@
 package handler
 
 import (
-	"encoding/json"
 	"net/http"
 	"time"
 
@@ -26,10 +25,6 @@ func HealthHandler(cfg *config.Config) http.HandlerFunc {
 			Timestamp:   time.Now().UTC(),
 		}
 
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusOK)
-		if err := json.NewEncoder(w).Encode(payload); err != nil {
-			http.Error(w, "internal server error", http.StatusInternalServerError)
-		}
+		writeJSON(w, http.StatusOK, payload)
 	}
 }

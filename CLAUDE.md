@@ -1,4 +1,4 @@
-# Agent Instructions
+# Claude Code Project Guidelines
 
-Refer to the universal project guidelines and invariants in [AGENTS.md](./AGENTS.md).
-Do not bypass quality guardrails or verification gates.
+Follow all project rules, verification gates, and conventions documented in:
+@AGENTS.md
