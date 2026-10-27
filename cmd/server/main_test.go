@@ -17,7 +17,7 @@ func TestSetupRouter_Root(t *testing.T) {
 		Port:    8080,
 	}
 
-	router := SetupRouter(cfg)
+	router := SetupRouter(cfg, nil)
 
 	req := httptest.NewRequest(http.MethodGet, "/", nil)
 	rr := httptest.NewRecorder()
@@ -35,7 +35,7 @@ func TestSetupRouter_Health(t *testing.T) {
 		Port:    8080,
 	}
 
-	router := SetupRouter(cfg)
+	router := SetupRouter(cfg, nil)
 
 	req := httptest.NewRequest(http.MethodGet, "/health", nil)
 	rr := httptest.NewRecorder()
