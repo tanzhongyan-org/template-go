@@ -4,40 +4,21 @@ Inherits: Universal L0 Invariants (workflow/AGENTS.md).
 Do not repeat global workflow rules here.
 
 ## 1. Project Technology Stack
-- Runtime: Go 1.23+
-- Project Layout: Standard Go project layout (`cmd/` and `internal/`)
-- HTTP Router: Chi (`github.com/go-chi/chi/v5`) with production middleware stack (`RequestID`, `RealIP`, `Logger`, `Recoverer`)
-- Database: SQLC type-safe query generation (`sqlc.yaml`, `sql/schema.sql`, `sql/queries.sql`)
-- Build & Verification: Universal Makefile (`install`, `dev`, `test`, `lint`, `lint-fix`, `check`)
-- Lint & Verification: `golangci-lint` (`.golangci.yml`), `go vet`, `go test`
+- Runtime: Go 1.23+ (`go.mod`)
+- Project Layout: Standard Go layout (`cmd/server/main.go`, `internal/`)
+- HTTP Router: Chi (`github.com/go-chi/chi/v5`) with standard middleware (`RequestID`, `RealIP`, `Logger`, `Recoverer`)
+- Database: SQLC (`sqlc.yaml`, `sql/schema.sql`, `sql/queries.sql`) generating type-safe Go in `internal/db/` using `pgx/v5`
+- Linters: `golangci-lint` (`.golangci.yml`), `go vet`, `go test -race`
 
-## 2. Physical File Placement Rules
-- Entry Point: Thin server initialization in `cmd/server/main.go`
-- Transport Handlers: Place HTTP route binders and Chi handlers in `internal/api/handlers/`
-- Domain Logic: Place features and models in `internal/domain/<feature>/`
-- Database Layer: Schema and queries in `sql/`, generated SQLC types in `internal/db/`
-- Configuration: Singleton environment loader in `internal/core/config/`
-- Test Suites: Sister-file colocated tests (e.g. `internal/domain/<feature>/<feature>_test.go`)
-- Universal Tasks: Centralized recipes in root `Makefile`
+## 2. Package Architecture & Layout
+- Shallow Packages: Keep package hierarchy flat (`internal/config`, `internal/handler`, `internal/db`). Avoid deep Java-like hierarchies (`core/`, `api/handlers/`).
+- Entry Point: `cmd/server/main.go` parses configuration, initializes dependencies, binds Chi router, and manages lifecycle via `signal.NotifyContext`.
+- Dependency Injection: Pass initialized dependencies (config, database pool) as explicit parameters or struct fields. Never use global package singletons.
+- Transport Handlers: Colocate route handlers and response contracts in `internal/handler/`. Do not create artificial "domain" packages for infrastructural probes.
+- Database Layer: Schema migrations and queries stay in `sql/`. Code is generated into `internal/db/` via `make generate` (`sqlc generate`).
 
-## 3. Data Access & Boundary Invariants
-- Direct calls to `os.Getenv` in domain packages are strictly banned. Load config via `internal/core/config`.
-- Always handle and wrap returned errors. Blank error ignores (`_ = err`) in domain paths are forbidden.
-- Route database queries through SQLC-generated types in `internal/db/` rather than raw string queries.
-
-## 4. Universal Makefile Targets
-- `make install`: Download module dependencies (`go mod download`).
-- `make dev`: Run the development server (`go run ./cmd/server/main.go`).
-- `make test`: Run all unit and integration tests (`go test -v ./...`).
-- `make lint`: Run `golangci-lint run ./...`.
-- `make lint-fix`: Run `golangci-lint run --fix ./...`.
-- `make check`: Run full verification suite (vet, test, build, fallow, ast-grep).
-
-## 5. The 6 Verification Gates
-Run these commands to prove task completion:
-1. Gate 1 (Vet & Build): `go vet ./... && go build ./...`
-2. Gate 2 (Lint): `golangci-lint run ./...` (or `go vet ./...`)
-3. Gate 3 (Tests): `go test -v ./...`
-4. Gate 4 (Dead Code): Zero unused exports or orphaned packages
-5. Gate 5 (Duplication): `npx --yes fallow@3.33.1 dupes --quiet --no-fragments`
-6. Gate 6 (Anti-Slop): `npx --yes --package @ast-grep/cli ast-grep scan`
+## 3. Go Idiomatic Invariants
+- Configuration Boundary: Direct calls to `os.Getenv` outside `internal/config` are banned.
+- Error Handling: Blank error ignores (`_ = err`) are forbidden. Wrap contextual errors with `%w` (`fmt.Errorf("...: %w", err)`).
+- HTTP Method Routing: Rely on Chi route registrations (`r.Get`, `r.Post`); do not write defensive manual `r.Method != ...` checks inside handlers.
+- Safe Graceful Shutdown: Handle process interruption using `signal.NotifyContext` and `server.Shutdown(ctx)` with an explicit drain timeout.

@@ -1,4 +1,4 @@
-.PHONY: install dev test lint lint-fix check
+.PHONY: install dev build generate test lint lint-fix check
 
 install:
 	go mod download
@@ -6,8 +6,14 @@ install:
 dev:
 	go run ./cmd/server/main.go
 
+build:
+	go build -o bin/server ./cmd/server
+
+generate:
+	sqlc generate
+
 test:
-	go test -v ./...
+	go test -v -race ./...
 
 lint:
 	golangci-lint run ./...

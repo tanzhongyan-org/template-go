@@ -13,35 +13,32 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
-	"github.com/tanzhongyan-org/template-go/internal/api/handlers"
-	"github.com/tanzhongyan-org/template-go/internal/core/config"
+	"github.com/tanzhongyan-org/template-go/internal/config"
+	"github.com/tanzhongyan-org/template-go/internal/handler"
 )
 
 // SetupRouter initializes the Chi router with standard middleware and routes.
 func SetupRouter(cfg *config.Config) *chi.Mux {
 	r := chi.NewRouter()
 
-	// Production middleware stack
 	r.Use(middleware.RequestID)
 	r.Use(middleware.RealIP)
 	r.Use(middleware.Logger)
 	r.Use(middleware.Recoverer)
 
-	healthHandler := handlers.NewHealthHandler(cfg)
+	healthFn := handler.HealthHandler(cfg)
 
-	// Root routes
 	r.Get("/", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "text/plain; charset=utf-8")
-		_, _ = fmt.Fprintf(w, "Welcome to %s\n", cfg.AppName)
+		_, _ = w.Write([]byte(fmt.Sprintf("Welcome to %s\n", cfg.AppName)))
 	})
-	r.Get("/health", healthHandler.ServeHTTP)
+	r.Get("/health", healthFn)
 
-	// API v1 route group
 	r.Route("/api/v1", func(r chi.Router) {
-		r.Get("/health", healthHandler.ServeHTTP)
+		r.Get("/health", healthFn)
 		r.Get("/", func(w http.ResponseWriter, r *http.Request) {
 			w.Header().Set("Content-Type", "application/json")
-			_, _ = fmt.Fprintf(w, `{"message":"Welcome to %s API v1"}`+"\n", cfg.AppName)
+			_, _ = w.Write([]byte(fmt.Sprintf(`{"message":"Welcome to %s API v1"}`+"\n", cfg.AppName)))
 		})
 	})
 
@@ -49,9 +46,12 @@ func SetupRouter(cfg *config.Config) *chi.Mux {
 }
 
 func main() {
-	cfg := config.Load()
-	router := SetupRouter(cfg)
+	cfg, err := config.Load()
+	if err != nil {
+		log.Fatalf("Failed to load configuration: %v", err)
+	}
 
+	router := SetupRouter(cfg)
 	addr := fmt.Sprintf(":%d", cfg.Port)
 	server := &http.Server{
 		Addr:         addr,
@@ -61,31 +61,27 @@ func main() {
 		IdleTimeout:  60 * time.Second,
 	}
 
-	serverErrors := make(chan error, 1)
+	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
+	defer stop()
+
 	go func() {
 		log.Printf("Starting %s on %s...", cfg.AppName, addr)
-		serverErrors <- server.ListenAndServe()
-	}()
-
-	shutdown := make(chan os.Signal, 1)
-	signal.Notify(shutdown, os.Interrupt, syscall.SIGTERM)
-
-	select {
-	case err := <-serverErrors:
-		if err != nil && !errors.Is(err, http.ErrServerClosed) {
+		if err := server.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
 			log.Fatalf("Server error: %v", err)
 		}
-	case sig := <-shutdown:
-		log.Printf("Shutdown signal %v received, initiating graceful shutdown...", sig)
-		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-		defer cancel()
+	}()
 
-		if err := server.Shutdown(ctx); err != nil {
-			log.Printf("Graceful shutdown failed: %v", err)
-			if closeErr := server.Close(); closeErr != nil {
-				log.Fatalf("Error closing server: %v", closeErr)
-			}
+	<-ctx.Done()
+	log.Println("Shutdown signal received, initiating graceful shutdown...")
+
+	shutdownCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	if err := server.Shutdown(shutdownCtx); err != nil {
+		log.Printf("Graceful shutdown failed: %v", err)
+		if closeErr := server.Close(); closeErr != nil {
+			log.Fatalf("Error closing server: %v", closeErr)
 		}
-		log.Println("Server stopped gracefully")
 	}
+	log.Println("Server stopped gracefully")
 }
