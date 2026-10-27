@@ -11,7 +11,22 @@ permissions:
 
 jobs:
   verification-gates:
+    if: (!hashFiles('.github/workflows/init.yml') || github.repository == 'tanzhongyan-org/template-go')
     runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: password
+          POSTGRES_DB: template_go
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 5
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
         with:
@@ -30,3 +45,5 @@ jobs:
 
       - name: "Run Verification Gates"
         run: make check
+        env:
+          DATABASE_URL: "postgres://postgres:password@localhost:5432/template_go?sslmode=disable"

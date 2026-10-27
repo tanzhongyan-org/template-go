@@ -1,0 +1,6 @@
+{
+  "hooks": {
+    "afterEdit": "scripts/agent-hook.sh file-edit",
+    "stop": "scripts/agent-hook.sh finish-turn"
+  }
+}
