@@ -220,13 +220,30 @@ function directDependencies(manifest) {
     // [project.optional-dependencies]; include-group tables carry no strings.
     const names = [];
     const sections = tomlSections(text);
+    // Linear scan: find `key = [`, then collect quoted strings until the `]`
+    // that closes the array outside any quote (extras like `pkg[x]` are quoted).
     const arrays = (lines, onlyKey) => {
       const body = lines.join("\n");
-      for (const m of body.matchAll(/^\s*([A-Za-z0-9_-]+)\s*=\s*\[((?:\s*(?:"[^"]*"|'[^']*'|\{[^}]*\})\s*,?)*\s*)\]/gm)) {
+      for (const m of body.matchAll(/^[ \t]*([A-Za-z0-9_-]+)[ \t]*=[ \t]*\[/gm)) {
         if (onlyKey && m[1] !== onlyKey) continue;
-        for (const [, spec] of m[2].matchAll(/["']([^"']+)["']/g)) {
-          const name = pep508Name(spec);
-          if (name) names.push(name);
+        let quote = "";
+        let current = "";
+        for (let i = m.index + m[0].length; i < body.length; i++) {
+          const c = body[i];
+          if (quote) {
+            if (c === quote) {
+              const name = pep508Name(current);
+              if (name) names.push(name);
+              quote = "";
+              current = "";
+            } else {
+              current += c;
+            }
+          } else if (c === '"' || c === "'") {
+            quote = c;
+          } else if (c === "]") {
+            break;
+          }
         }
       }
     };
