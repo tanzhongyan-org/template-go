@@ -1,9 +1,6 @@
 {
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
-  "extends": [
-    "config:recommended",
-    "helpers:pinGitHubActionDigests"
-  ],
+  "extends": ["config:recommended", "helpers:pinGitHubActionDigests"],
   "minimumReleaseAge": "3 days",
   "lockFileMaintenance": {
     "enabled": true,
@@ -11,18 +8,18 @@
   },
   "packageRules": [
     {
-      "description": "Group minor and patch updates into one pull request",
+      "description": "Group minor, patch and digest updates into one pull request",
       "matchUpdateTypes": ["minor", "patch", "digest"],
-      "groupName": "non-major"
+      "groupName": "non-major dependencies"
     }
   ],
   "customManagers": [
     {
+      "description": "Update versions annotated with '# renovate: datasource=<ds> depName=<name>' in Makefiles, YAML and TOML",
       "customType": "regex",
-      "description": "Versions annotated with a renovate comment in Makefile and workflows",
-      "managerFilePatterns": ["/(^|/)Makefile$/", "/^\\.github/workflows/.+\\.ya?ml$/"],
+      "managerFilePatterns": ["/(^|/)Makefile$/", "/\\.ya?ml$/", "/\\.toml$/"],
       "matchStrings": [
-        "# renovate: datasource=(?<datasource>[a-z-]+) depName=(?<depName>[^\\s]+)(?: extractVersion=(?<extractVersion>[^\\s]+))?\\s+(?:[A-Za-z0-9_]+\\s*[:?]?=\\s*|[A-Za-z0-9_]+:\\s*)(?<currentValue>[^\\s]+)"
+        "#\\s*renovate:\\s*datasource=(?<datasource>\\S+)\\s+depName=(?<depName>\\S+)(?:\\s+versioning=(?<versioning>\\S+))?(?:\\s+extractVersion=(?<extractVersion>\\S+))?\\s*\\n[^\\n]*?(?::=|=|:)\\s*[\"']?(?<currentValue>[^\\s\"']+)[\"']?"
       ]
     }
   ]
