@@ -1,7 +1,8 @@
-.PHONY: setup dev test lint fix typecheck check up down build generate
+.PHONY: setup dev test lint fix typecheck check up down build generate audit
 
 setup:
 	go mod download
+	npx --yes lefthook@2.2.2 install
 
 up:
 	docker compose up -d --wait
@@ -30,9 +31,13 @@ fix:
 typecheck:
 	go vet ./...
 
+audit:
+	go run golang.org/x/vuln/cmd/govulncheck@latest ./...
+
 check:
 	go vet ./...
 	golangci-lint run ./...
 	go test -v -race ./...
 	go build ./...
-	npx --yes --package @ast-grep/cli ast-grep scan
+	npx --yes --package @ast-grep/cli@0.51.0 ast-grep scan
+	npx --yes --package @ast-grep/cli@0.51.0 ast-grep test --skip-snapshot-tests

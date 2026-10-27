@@ -3,10 +3,6 @@ message: "Empty function or placeholder stub detected."
 severity: error
 language: Go
 rule:
-  any:
-    - pattern: |
-        func $NAME($$$ARGS) {
-        }
-    - pattern: |
-        func ($RECV) $NAME($$$ARGS) {
-        }
+  pattern: |
+    func $NAME($$$ARGS) {
+    }
