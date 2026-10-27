@@ -1,9 +1,15 @@
-.PHONY: install dev build generate test lint lint-fix check
+.PHONY: install up down dev build generate test lint lint-fix check
 
 install:
 	go mod download
 
-dev:
+up:
+	docker compose up -d --wait
+
+down:
+	docker compose down
+
+dev: up
 	go run ./cmd/server/main.go
 
 build:
@@ -25,5 +31,5 @@ check:
 	go vet ./...
 	go test -v ./...
 	go build ./...
-	npx --yes fallow@3.33.1 dupes --quiet --no-fragments
+	npx --yes fallow@3.33.1 dupes --root . --quiet --no-fragments
 	npx --yes --package @ast-grep/cli ast-grep scan
