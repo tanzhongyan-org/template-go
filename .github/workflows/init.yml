@@ -1,0 +1,35 @@
+name: Initialize Template Repository
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  init-repo:
+    # Only run on repositories created from the template, not on the template itself
+    if: github.repository != 'tanzhongyan-org/template-go'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Rename template placeholders
+        run: |
+          NEW_NAME="${GITHUB_REPOSITORY#*/}"
+          NEW_MODULE="github.com/${GITHUB_REPOSITORY}"
+          echo "Renaming template-go to $NEW_NAME..."
+          find . -type f \( -name "*.mod" -o -name "*.go" -o -name "*.md" -o -name "*.jsonc" -o -name "*.yml" \) \
+            -not -path "*/.git/*" \
+            -exec sed -i "s|github.com/tanzhongyan-org/template-go|$NEW_MODULE|g" {} +
+          find . -type f \( -name "*.mod" -o -name "*.go" -o -name "*.md" -o -name "*.jsonc" -o -name "*.yml" \) \
+            -not -path "*/.git/*" \
+            -exec sed -i "s/template-go/$NEW_NAME/g" {} +
+
+      - name: Remove init workflow and commit changes
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git rm .github/workflows/init.yml
+          git commit -m "chore: initialize repository from template-go"
+          git push

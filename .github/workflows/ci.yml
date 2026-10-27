@@ -1,0 +1,34 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  verification-gates:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version: '1.23'
+          cache: true
+
+      - name: "Gate 1: Vet and Build"
+        run: |
+          go vet ./...
+          go build ./...
+
+      - name: "Gate 3: Unit and Integration Tests"
+        run: go test -v -race ./...
+
+      - name: "Gate 5: Duplication Audit"
+        run: npx --yes fallow@3.33.1 dupes --quiet --no-fragments
+
+      - name: "Gate 6: Anti-Slop Scan"
+        run: npx --yes --package @ast-grep/cli ast-grep scan
