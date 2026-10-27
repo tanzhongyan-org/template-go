@@ -4,17 +4,16 @@ Universal Go application boilerplate with standard project layout, Chi router, p
 
 ## Features
 
-- **Runtime:** Go 1.23+ with standard project layout (`cmd/`, `internal/`)
-- **Transport:** Chi router (`github.com/go-chi/chi/v5`) with production middleware stack (`RequestID`, `RealIP`, `Logger`, `Recoverer`)
+- **Runtime:** Go 1.27+ with standard project layout (`cmd/`, `internal/`)
+- **Transport:** Chi router (`github.com/go-chi/chi/v5`) with production middleware stack (`RequestID`, `Logger`, `Recoverer`)
 - **Database:** Type-safe SQL generation using SQLC (`sql/schema.sql`, `sql/queries.sql`, `sqlc.yaml` -> `internal/db`)
-- **Build & Task Automation:** Universal `Makefile` with `install`, `dev`, `test`, `lint`, `lint-fix`, and `check` targets
+- **Build & Task Automation:** Universal `Makefile` with `setup`, `dev`, `test`, `lint`, `fix`, `typecheck`, and `check` targets
 - **Code Quality:** `.golangci.yml` standard linter configuration (`errcheck`, `govet`, `staticcheck`, `unused`)
 - **Config & Validation:** Validated environment configuration module
 - **Agent Guardrails:**
   - `lefthook.yml`: Sub-second local Git pre-commit hooks
-  - `fallow.jsonc`: AST-aware code duplication and cognitive complexity limits
   - `sgconfig.yml` + `.ast-grep/`: Automatic detection of placeholder stubs and unfulfilled code
-  - `.github/workflows/ci.yml`: Automated CI running the 6 Universal Verification Gates
+  - `.github/workflows/ci.yml`: Automated CI running the 6 Universal Verification Gates via `make check`
   - `AGENTS.md`: Runtime-specific agent invariants
 
 ## Getting Started
@@ -29,8 +28,8 @@ cd my-go-service
 
 ### 2. Local Setup
 ```bash
-# Install dependencies
-make install
+# Download dependencies
+make setup
 # or: go mod download
 
 # Run server with Chi router and graceful shutdown
@@ -46,30 +45,12 @@ Database schema and SQL queries are located under `sql/`:
 
 Generate type-safe Go query code:
 ```bash
-sqlc generate
+make generate
+# or: sqlc generate
 ```
 
 ### 4. Run Verification Gates
 ```bash
-# Run universal check (Gate 1, 3, 5, 6)
+# Run universal check
 make check
-
-# Or individual gates:
-# Gate 1: Vet & Build
-go vet ./...
-go build ./...
-
-# Gate 2: Lint
-make lint
-# or: golangci-lint run ./...
-
-# Gate 3: Test
-make test
-# or: go test -v ./...
-
-# Gate 5: Duplication Audit
-npx --yes fallow@3.33.1 dupes --quiet --no-fragments
-
-# Gate 6: Anti-Slop Scan
-npx --yes --package @ast-grep/cli ast-grep scan
 ```

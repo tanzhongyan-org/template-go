@@ -16,24 +16,14 @@ jobs:
 
       - uses: actions/setup-go@v5
         with:
-          go-version: '1.24'
+          go-version: '1.27'
           cache: true
 
-      - name: "Gate 1: Vet and Build"
-        run: |
-          go vet ./...
-          go build ./...
-
-      - name: "Gate 2: Lint"
+      - name: Install golangci-lint
         uses: golangci/golangci-lint-action@v6
         with:
-          version: latest
+          version: v1.64.8
+          install-mode: binary
 
-      - name: "Gate 3: Unit and Integration Tests"
-        run: go test -v -race ./...
-
-      - name: "Gate 5: Duplication Audit"
-        run: npx --yes fallow@3.33.1 dupes --quiet --no-fragments
-
-      - name: "Gate 6: Anti-Slop Scan"
-        run: npx --yes --package @ast-grep/cli ast-grep scan
+      - name: "Run Verification Gates"
+        run: make check
