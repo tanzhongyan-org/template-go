@@ -201,7 +201,7 @@ function directDependencies(manifest) {
     for (const [, block] of text.matchAll(/^tool\s*\(([\s\S]*?)^\)/gm)) {
       for (const line of block.split("\n")) if (line.trim()) names.push(line.trim());
     }
-    for (const [, name] of text.matchAll(/^tool\s+(\S+)\s*$/gm)) names.push(name);
+    for (const [, name] of text.matchAll(/^tool\s+([^\s(]\S*)\s*$/gm)) names.push(name);
     return names;
   }
   if (manifest.endsWith("Cargo.toml")) {
