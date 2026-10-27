@@ -1,0 +1,11 @@
+id: no-raw-http-error
+valid:
+  - |
+    func f(w http.ResponseWriter) {
+        writeError(w, 400, "bad")
+    }
+invalid:
+  - |
+    func f(w http.ResponseWriter) {
+        http.Error(w, "bad", 400)
+    }

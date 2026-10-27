@@ -1,8 +1,9 @@
 package handler
 
 import (
-	"encoding/json"
+	"context"
 	"errors"
+	"log"
 	"net/http"
 	"strings"
 	"time"
@@ -11,9 +12,14 @@ import (
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgtype"
+	"github.com/tanzhongyan-org/template-go/internal/config"
 	"github.com/tanzhongyan-org/template-go/internal/db"
 )
 
+// maxTitleLength mirrors VARCHAR(200) in sql/schema.sql.
+const maxTitleLength = 200
+
+// TEMPLATE-TODO(example): replace the notes slice with your own domain.
 type NoteResponse struct {
 	ID        string     `json:"id"`
 	OwnerID   string     `json:"owner_id"`
@@ -56,27 +62,75 @@ func toNoteResponse(n db.Note) NoteResponse {
 	}
 }
 
-func extractOwnerID(r *http.Request) string {
-	owner := r.Header.Get("x-user-id")
-	if strings.TrimSpace(owner) == "" {
-		return "test-owner"
-	}
-	return strings.TrimSpace(owner)
+type ownerKey struct{}
+
+// ownerFrom returns the caller identity stored by requireOwner.
+func ownerFrom(ctx context.Context) string {
+	owner, _ := ctx.Value(ownerKey{}).(string)
+	return owner
 }
 
 type NotesHandler struct {
 	queries *db.Queries
+	trust   bool
 }
 
-func NewNotesHandler(queries *db.Queries) *NotesHandler {
-	return &NotesHandler{queries: queries}
+func NewNotesHandler(queries *db.Queries, cfg *config.Config) *NotesHandler {
+	return &NotesHandler{queries: queries, trust: cfg.TrustIdentityHeader}
+}
+
+// Routes returns the notes routes behind the identity check.
+func (h *NotesHandler) Routes() chi.Router {
+	r := chi.NewRouter()
+	r.Use(h.requireOwner)
+	r.Get("/", h.List)
+	r.Post("/", h.Create)
+	r.Get("/{id}", h.Get)
+	r.Put("/{id}", h.Update)
+	r.Delete("/{id}", h.Delete)
+	return r
+}
+
+// requireOwner is the single identity boundary. It fails closed: without
+// TRUST_IDENTITY_HEADER=true, or with a missing or blank x-user-id, it answers 401.
+// TEMPLATE-TODO(auth): replace header identity with real authentication
+func (h *NotesHandler) requireOwner(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		owner := strings.TrimSpace(r.Header.Get("x-user-id"))
+		if !h.trust || owner == "" {
+			writeError(w, http.StatusUnauthorized, "Authentication required")
+			return
+		}
+		next.ServeHTTP(w, r.WithContext(context.WithValue(r.Context(), ownerKey{}, owner)))
+	})
+}
+
+// cleanTitle trims and validates a note title. A non-empty message is the 400 reason.
+func cleanTitle(raw string) (string, string) {
+	t := strings.TrimSpace(raw)
+	if t == "" {
+		return "", "Title cannot be empty"
+	}
+	if len(t) > maxTitleLength {
+		return "", "Title must not exceed 200 characters"
+	}
+	return t, ""
+}
+
+// cleanBody trims and validates a note body. A non-empty message is the 400 reason.
+func cleanBody(raw string) (string, string) {
+	b := strings.TrimSpace(raw)
+	if b == "" {
+		return "", "Body cannot be empty"
+	}
+	return b, ""
 }
 
 func (h *NotesHandler) List(w http.ResponseWriter, r *http.Request) {
-	ownerID := extractOwnerID(r)
-	notes, err := h.queries.ListNotes(r.Context(), ownerID)
+	notes, err := h.queries.ListNotes(r.Context(), ownerFrom(r.Context()))
 	if err != nil {
-		http.Error(w, `{"error":{"message":"Failed to list notes"}}`, http.StatusInternalServerError)
+		log.Printf("list notes: %v", err)
+		writeError(w, http.StatusInternalServerError, "Failed to list notes")
 		return
 	}
 
@@ -84,143 +138,114 @@ func (h *NotesHandler) List(w http.ResponseWriter, r *http.Request) {
 	for _, n := range notes {
 		res = append(res, toNoteResponse(n))
 	}
-
-	w.Header().Set("Content-Type", "application/json")
-	_ = json.NewEncoder(w).Encode(res)
+	writeJSON(w, http.StatusOK, res)
 }
 
 func (h *NotesHandler) Get(w http.ResponseWriter, r *http.Request) {
-	id := chi.URLParam(r, "id")
-	ownerID := extractOwnerID(r)
-
 	note, err := h.queries.GetNote(r.Context(), db.GetNoteParams{
-		ID:      id,
-		OwnerID: ownerID,
+		ID:      chi.URLParam(r, "id"),
+		OwnerID: ownerFrom(r.Context()),
 	})
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
-			http.Error(w, `{"error":{"message":"Note not found"}}`, http.StatusNotFound)
+			writeError(w, http.StatusNotFound, "Note not found")
 			return
 		}
-		http.Error(w, `{"error":{"message":"Failed to get note"}}`, http.StatusInternalServerError)
+		log.Printf("get note: %v", err)
+		writeError(w, http.StatusInternalServerError, "Failed to get note")
 		return
 	}
-
-	w.Header().Set("Content-Type", "application/json")
-	_ = json.NewEncoder(w).Encode(toNoteResponse(note))
+	writeJSON(w, http.StatusOK, toNoteResponse(note))
 }
 
 func (h *NotesHandler) Create(w http.ResponseWriter, r *http.Request) {
-	ownerID := extractOwnerID(r)
-
 	var req CreateNoteRequest
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		http.Error(w, `{"error":{"message":"Invalid JSON payload"}}`, http.StatusBadRequest)
+	if !decodeJSON(w, r, &req) {
 		return
 	}
 
-	trimmedTitle := strings.TrimSpace(req.Title)
-	if trimmedTitle == "" {
-		http.Error(w, `{"error":{"message":"Title cannot be empty"}}`, http.StatusBadRequest)
+	title, msg := cleanTitle(req.Title)
+	if msg != "" {
+		writeError(w, http.StatusBadRequest, msg)
 		return
 	}
-	if len(trimmedTitle) > 200 {
-		http.Error(w, `{"error":{"message":"Title must not exceed 200 characters"}}`, http.StatusBadRequest)
-		return
-	}
-
-	trimmedBody := strings.TrimSpace(req.Body)
-	if trimmedBody == "" {
-		http.Error(w, `{"error":{"message":"Body cannot be empty"}}`, http.StatusBadRequest)
+	body, msg := cleanBody(req.Body)
+	if msg != "" {
+		writeError(w, http.StatusBadRequest, msg)
 		return
 	}
 
-	id := uuid.New().String()
 	note, err := h.queries.CreateNote(r.Context(), db.CreateNoteParams{
-		ID:      id,
-		OwnerID: ownerID,
-		Title:   trimmedTitle,
-		Body:    trimmedBody,
+		ID:      uuid.New().String(),
+		OwnerID: ownerFrom(r.Context()),
+		Title:   title,
+		Body:    body,
 	})
 	if err != nil {
-		http.Error(w, `{"error":{"message":"Failed to create note"}}`, http.StatusInternalServerError)
+		log.Printf("create note: %v", err)
+		writeError(w, http.StatusInternalServerError, "Failed to create note")
 		return
 	}
-
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusCreated)
-	_ = json.NewEncoder(w).Encode(toNoteResponse(note))
+	writeJSON(w, http.StatusCreated, toNoteResponse(note))
 }
 
 func (h *NotesHandler) Update(w http.ResponseWriter, r *http.Request) {
-	id := chi.URLParam(r, "id")
-	ownerID := extractOwnerID(r)
-
 	var req UpdateNoteRequest
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		http.Error(w, `{"error":{"message":"Invalid JSON payload"}}`, http.StatusBadRequest)
+	if !decodeJSON(w, r, &req) {
 		return
 	}
 
 	var titleParam pgtype.Text
 	if req.Title != nil {
-		t := strings.TrimSpace(*req.Title)
-		if t == "" {
-			http.Error(w, `{"error":{"message":"Title cannot be empty"}}`, http.StatusBadRequest)
+		title, msg := cleanTitle(*req.Title)
+		if msg != "" {
+			writeError(w, http.StatusBadRequest, msg)
 			return
 		}
-		if len(t) > 200 {
-			http.Error(w, `{"error":{"message":"Title must not exceed 200 characters"}}`, http.StatusBadRequest)
-			return
-		}
-		titleParam = pgtype.Text{String: t, Valid: true}
+		titleParam = pgtype.Text{String: title, Valid: true}
 	}
 
 	var bodyParam pgtype.Text
 	if req.Body != nil {
-		b := strings.TrimSpace(*req.Body)
-		if b == "" {
-			http.Error(w, `{"error":{"message":"Body cannot be empty"}}`, http.StatusBadRequest)
+		body, msg := cleanBody(*req.Body)
+		if msg != "" {
+			writeError(w, http.StatusBadRequest, msg)
 			return
 		}
-		bodyParam = pgtype.Text{String: b, Valid: true}
+		bodyParam = pgtype.Text{String: body, Valid: true}
 	}
 
 	note, err := h.queries.UpdateNote(r.Context(), db.UpdateNoteParams{
-		ID:      id,
-		OwnerID: ownerID,
+		ID:      chi.URLParam(r, "id"),
+		OwnerID: ownerFrom(r.Context()),
 		Title:   titleParam,
 		Body:    bodyParam,
 	})
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
-			http.Error(w, `{"error":{"message":"Note not found"}}`, http.StatusNotFound)
+			writeError(w, http.StatusNotFound, "Note not found")
 			return
 		}
-		http.Error(w, `{"error":{"message":"Failed to update note"}}`, http.StatusInternalServerError)
+		log.Printf("update note: %v", err)
+		writeError(w, http.StatusInternalServerError, "Failed to update note")
 		return
 	}
-
-	w.Header().Set("Content-Type", "application/json")
-	_ = json.NewEncoder(w).Encode(toNoteResponse(note))
+	writeJSON(w, http.StatusOK, toNoteResponse(note))
 }
 
 func (h *NotesHandler) Delete(w http.ResponseWriter, r *http.Request) {
-	id := chi.URLParam(r, "id")
-	ownerID := extractOwnerID(r)
-
 	rows, err := h.queries.DeleteNote(r.Context(), db.DeleteNoteParams{
-		ID:      id,
-		OwnerID: ownerID,
+		ID:      chi.URLParam(r, "id"),
+		OwnerID: ownerFrom(r.Context()),
 	})
 	if err != nil {
-		http.Error(w, `{"error":{"message":"Failed to delete note"}}`, http.StatusInternalServerError)
+		log.Printf("delete note: %v", err)
+		writeError(w, http.StatusInternalServerError, "Failed to delete note")
 		return
 	}
 	if rows == 0 {
-		http.Error(w, `{"error":{"message":"Note not found"}}`, http.StatusNotFound)
+		writeError(w, http.StatusNotFound, "Note not found")
 		return
 	}
-
 	w.WriteHeader(http.StatusNoContent)
 }

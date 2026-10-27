@@ -11,6 +11,22 @@ linters:
     - govet
     - staticcheck
     - unused
+    - gosec
+    - bodyclose
+    - errorlint
+    - noctx
+    - sqlclosecheck
+    - dupl
+  settings:
+    dupl:
+      threshold: 100
+  exclusions:
+    rules:
+      - path: _test\.go
+        linters:
+          - gosec
+          - dupl
+          - noctx
 
 issues:
   max-issues-per-linter: 0

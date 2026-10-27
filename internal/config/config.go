@@ -12,6 +12,9 @@ type Config struct {
 	AppEnv      string
 	Port        int
 	DatabaseURL string
+	// TrustIdentityHeader enables the x-user-id header as the caller identity.
+	// TEMPLATE-TODO(auth): replace header identity with real authentication
+	TrustIdentityHeader bool
 }
 
 // Load validates and returns configuration from environment variables.
@@ -26,11 +29,19 @@ func Load() (*Config, error) {
 		return nil, fmt.Errorf("invalid PORT %q: %w", portStr, err)
 	}
 
+	trustStr := getEnv("TRUST_IDENTITY_HEADER", "false")
+	trust, err := strconv.ParseBool(trustStr)
+	if err != nil {
+		return nil, fmt.Errorf("invalid TRUST_IDENTITY_HEADER %q: %w", trustStr, err)
+	}
+
 	return &Config{
 		AppName:     appName,
 		AppEnv:      appEnv,
 		Port:        port,
 		DatabaseURL: dbURL,
+
+		TrustIdentityHeader: trust,
 	}, nil
 }
 

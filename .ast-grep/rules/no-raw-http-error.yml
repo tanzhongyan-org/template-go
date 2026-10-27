@@ -1,0 +1,18 @@
+id: no-raw-http-error
+message: "Use writeJSON/writeError from internal/handler/respond.go instead of http.Error."
+severity: error
+language: Go
+ignores:
+  - "internal/handler/respond.go"
+rule:
+  kind: call_expression
+  has:
+    field: function
+    kind: selector_expression
+    all:
+      - has:
+          field: operand
+          regex: "^http$"
+      - has:
+          field: field
+          regex: "^Error$"

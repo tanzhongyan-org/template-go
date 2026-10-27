@@ -17,20 +17,11 @@ import (
 	"github.com/tanzhongyan-org/template-go/internal/config"
 	"github.com/tanzhongyan-org/template-go/internal/db"
 	"github.com/tanzhongyan-org/template-go/internal/handler"
+	dbschema "github.com/tanzhongyan-org/template-go/sql"
 )
 
-const schemaSQL = `
-CREATE TABLE IF NOT EXISTS notes (
-    id VARCHAR(36) PRIMARY KEY,
-    owner_id VARCHAR(255) NOT NULL,
-    title VARCHAR(200) NOT NULL,
-    body TEXT NOT NULL,
-    created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMPTZ
-);
-
-CREATE INDEX IF NOT EXISTS idx_notes_owner_id ON notes (owner_id);
-`
+// maxBodyBytes caps request bodies at the HTTP boundary.
+const maxBodyBytes = 1 << 20
 
 // SetupRouter initializes the Chi router with standard middleware and routes.
 func SetupRouter(cfg *config.Config, queries *db.Queries) *chi.Mux {
@@ -39,41 +30,24 @@ func SetupRouter(cfg *config.Config, queries *db.Queries) *chi.Mux {
 	r.Use(middleware.RequestID)
 	r.Use(middleware.Logger)
 	r.Use(middleware.Recoverer)
+	r.Use(handler.LimitBody(maxBodyBytes))
 
 	healthFn := handler.HealthHandler(cfg)
 
-	r.Get("/", func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Content-Type", "text/plain; charset=utf-8")
-		_, _ = fmt.Fprintf(w, "Welcome to %s\n", cfg.AppName)
-	})
+	r.Get("/", handler.RootHandler(cfg))
 	r.Get("/health", healthFn)
 
+	var notesH *handler.NotesHandler
 	if queries != nil {
-		notesH := handler.NewNotesHandler(queries)
-		r.Route("/notes", func(r chi.Router) {
-			r.Get("/", notesH.List)
-			r.Post("/", notesH.Create)
-			r.Get("/{id}", notesH.Get)
-			r.Put("/{id}", notesH.Update)
-			r.Delete("/{id}", notesH.Delete)
-		})
+		notesH = handler.NewNotesHandler(queries, cfg)
+		r.Mount("/notes", notesH.Routes())
 	}
 
 	r.Route("/api/v1", func(r chi.Router) {
 		r.Get("/health", healthFn)
-		r.Get("/", func(w http.ResponseWriter, r *http.Request) {
-			w.Header().Set("Content-Type", "application/json")
-			_, _ = fmt.Fprintf(w, `{"message":"Welcome to %s API v1"}`+"\n", cfg.AppName)
-		})
-		if queries != nil {
-			notesH := handler.NewNotesHandler(queries)
-			r.Route("/notes", func(r chi.Router) {
-				r.Get("/", notesH.List)
-				r.Post("/", notesH.Create)
-				r.Get("/{id}", notesH.Get)
-				r.Put("/{id}", notesH.Update)
-				r.Delete("/{id}", notesH.Delete)
-			})
+		r.Get("/", handler.APIRootHandler(cfg))
+		if notesH != nil {
+			r.Mount("/notes", notesH.Routes())
 		}
 	})
 
@@ -95,7 +69,7 @@ func main() {
 	}
 	defer pool.Close()
 
-	if _, err := pool.Exec(ctx, schemaSQL); err != nil {
+	if _, err := pool.Exec(ctx, dbschema.Schema); err != nil {
 		log.Fatalf("Failed to initialize database schema: %v", err)
 	}
 
@@ -104,11 +78,12 @@ func main() {
 
 	addr := fmt.Sprintf(":%d", cfg.Port)
 	server := &http.Server{
-		Addr:         addr,
-		Handler:      router,
-		ReadTimeout:  15 * time.Second,
-		WriteTimeout: 15 * time.Second,
-		IdleTimeout:  60 * time.Second,
+		Addr:              addr,
+		Handler:           router,
+		ReadHeaderTimeout: 5 * time.Second,
+		ReadTimeout:       15 * time.Second,
+		WriteTimeout:      15 * time.Second,
+		IdleTimeout:       60 * time.Second,
 	}
 
 	go func() {

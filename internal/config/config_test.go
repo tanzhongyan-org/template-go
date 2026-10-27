@@ -55,3 +55,28 @@ func TestLoad_InvalidPort(t *testing.T) {
 		t.Fatal("expected error for invalid PORT, got nil")
 	}
 }
+
+func TestLoad_TrustIdentityHeader(t *testing.T) {
+	t.Setenv("TRUST_IDENTITY_HEADER", "")
+	cfg, err := Load()
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if cfg.TrustIdentityHeader {
+		t.Error("expected TrustIdentityHeader to default to false")
+	}
+
+	t.Setenv("TRUST_IDENTITY_HEADER", "true")
+	cfg, err = Load()
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if !cfg.TrustIdentityHeader {
+		t.Error("expected TrustIdentityHeader to be true")
+	}
+
+	t.Setenv("TRUST_IDENTITY_HEADER", "maybe")
+	if _, err := Load(); err == nil {
+		t.Fatal("expected error for invalid TRUST_IDENTITY_HEADER")
+	}
+}
