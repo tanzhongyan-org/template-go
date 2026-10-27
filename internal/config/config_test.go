@@ -6,9 +6,15 @@ import (
 )
 
 func TestLoad_Defaults(t *testing.T) {
-	os.Unsetenv("APP_NAME")
-	os.Unsetenv("APP_ENV")
-	os.Unsetenv("PORT")
+	if err := os.Unsetenv("APP_NAME"); err != nil {
+		t.Fatalf("failed to unset APP_NAME: %v", err)
+	}
+	if err := os.Unsetenv("APP_ENV"); err != nil {
+		t.Fatalf("failed to unset APP_ENV: %v", err)
+	}
+	if err := os.Unsetenv("PORT"); err != nil {
+		t.Fatalf("failed to unset PORT: %v", err)
+	}
 
 	cfg, err := Load()
 	if err != nil {

@@ -22,7 +22,6 @@ func SetupRouter(cfg *config.Config) *chi.Mux {
 	r := chi.NewRouter()
 
 	r.Use(middleware.RequestID)
-	r.Use(middleware.RealIP)
 	r.Use(middleware.Logger)
 	r.Use(middleware.Recoverer)
 
@@ -30,7 +29,7 @@ func SetupRouter(cfg *config.Config) *chi.Mux {
 
 	r.Get("/", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "text/plain; charset=utf-8")
-		_, _ = w.Write([]byte(fmt.Sprintf("Welcome to %s\n", cfg.AppName)))
+		_, _ = fmt.Fprintf(w, "Welcome to %s\n", cfg.AppName)
 	})
 	r.Get("/health", healthFn)
 
@@ -38,7 +37,7 @@ func SetupRouter(cfg *config.Config) *chi.Mux {
 		r.Get("/health", healthFn)
 		r.Get("/", func(w http.ResponseWriter, r *http.Request) {
 			w.Header().Set("Content-Type", "application/json")
-			_, _ = w.Write([]byte(fmt.Sprintf(`{"message":"Welcome to %s API v1"}`+"\n", cfg.AppName)))
+			_, _ = fmt.Fprintf(w, `{"message":"Welcome to %s API v1"}`+"\n", cfg.AppName)
 		})
 	})
 

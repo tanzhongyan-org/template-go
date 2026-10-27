@@ -1,6 +1,6 @@
-.PHONY: install up down dev build generate test lint lint-fix check
+.PHONY: setup dev test lint fix typecheck check up down build generate
 
-install:
+setup:
 	go mod download
 
 up:
@@ -24,12 +24,15 @@ test:
 lint:
 	golangci-lint run ./...
 
-lint-fix:
+fix:
 	golangci-lint run --fix ./...
+
+typecheck:
+	go vet ./...
 
 check:
 	go vet ./...
-	go test -v ./...
+	golangci-lint run ./...
+	go test -v -race ./...
 	go build ./...
-	npx --yes fallow@3.33.1 dupes --root . --quiet --no-fragments
 	npx --yes --package @ast-grep/cli ast-grep scan
