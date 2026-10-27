@@ -19,10 +19,10 @@ jobs:
           NEW_NAME="${GITHUB_REPOSITORY#*/}"
           NEW_MODULE="github.com/${GITHUB_REPOSITORY}"
           echo "Renaming template-go to $NEW_NAME..."
-          find . -type f \( -name "*.mod" -o -name "*.go" -o -name "*.md" -o -name "*.jsonc" -o -name "*.yml" \) \
+          find . -type f \( -name "*.mod" -o -name "*.go" -o -name "*.md" -o -name "*.jsonc" -o -name "*.yml" -o -name "*.yaml" -o -name "Makefile" \) \
             -not -path "*/.git/*" \
             -exec sed -i "s|github.com/tanzhongyan-org/template-go|$NEW_MODULE|g" {} +
-          find . -type f \( -name "*.mod" -o -name "*.go" -o -name "*.md" -o -name "*.jsonc" -o -name "*.yml" \) \
+          find . -type f \( -name "*.mod" -o -name "*.go" -o -name "*.md" -o -name "*.jsonc" -o -name "*.yml" -o -name "*.yaml" -o -name "Makefile" \) \
             -not -path "*/.git/*" \
             -exec sed -i "s/template-go/$NEW_NAME/g" {} +
 
