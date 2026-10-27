@@ -1,6 +1,31 @@
 {
   "hooks": {
-    "afterEdit": "scripts/agent-hook.sh file-edit",
-    "stop": "scripts/agent-hook.sh finish-turn"
+    "AfterTool": [
+      {
+        "matcher": "write_file|replace",
+        "hooks": [
+          {
+            "name": "auto-lint",
+            "type": "command",
+            "command": "sh scripts/agent-hook.sh post-edit",
+            "timeout": 10000,
+            "description": "Format and lint the edited file"
+          }
+        ]
+      }
+    ],
+    "AfterAgent": [
+      {
+        "hooks": [
+          {
+            "name": "verify-gate",
+            "type": "command",
+            "command": "sh scripts/agent-hook.sh stop",
+            "timeout": 120000,
+            "description": "Run make verify before the agent ends its turn; exit 2 forces a retry"
+          }
+        ]
+      }
+    ]
   }
 }
