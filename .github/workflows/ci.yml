@@ -20,10 +20,8 @@ jobs:
           cache: true
 
       - name: Install golangci-lint
-        uses: golangci/golangci-lint-action@v6
-        with:
-          version: v1.64.8
-          install-mode: binary
+        run: |
+          curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(go env GOPATH)/bin
 
       - name: "Run Verification Gates"
         run: make check
