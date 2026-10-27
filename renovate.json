@@ -3,5 +3,27 @@
   "extends": [
     "config:recommended",
     "helpers:pinGitHubActionDigests"
+  ],
+  "minimumReleaseAge": "3 days",
+  "lockFileMaintenance": {
+    "enabled": true,
+    "schedule": ["before 5am on monday"]
+  },
+  "packageRules": [
+    {
+      "description": "Group minor and patch updates into one pull request",
+      "matchUpdateTypes": ["minor", "patch", "digest"],
+      "groupName": "non-major"
+    }
+  ],
+  "customManagers": [
+    {
+      "customType": "regex",
+      "description": "Versions annotated with a renovate comment in Makefile and workflows",
+      "managerFilePatterns": ["/(^|/)Makefile$/", "/^\\.github/workflows/.+\\.ya?ml$/"],
+      "matchStrings": [
+        "# renovate: datasource=(?<datasource>[a-z-]+) depName=(?<depName>[^\\s]+)(?: extractVersion=(?<extractVersion>[^\\s]+))?\\s+(?:[A-Za-z0-9_]+\\s*[:?]?=\\s*|[A-Za-z0-9_]+:\\s*)(?<currentValue>[^\\s]+)"
+      ]
+    }
   ]
 }
