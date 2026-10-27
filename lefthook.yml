@@ -1,6 +1,9 @@
 pre-commit:
   parallel: false
   commands:
+    govet:
+      run: go vet ./...
+
     ast-grep-stubs:
       run: npx --yes --package @ast-grep/cli ast-grep scan
 
@@ -15,5 +18,8 @@ commit-msg:
 pre-push:
   parallel: false
   commands:
+    gotest:
+      run: go test ./...
+
     fallow-dupes:
       run: npx --yes fallow@3.33.1 dupes --quiet --no-fragments
