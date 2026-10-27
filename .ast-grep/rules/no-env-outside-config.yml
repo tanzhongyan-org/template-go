@@ -1,0 +1,18 @@
+id: no-env-outside-config
+message: "Direct access to os.Getenv or os.LookupEnv is forbidden outside internal/config."
+severity: error
+language: Go
+ignores:
+  - "internal/config/**"
+rule:
+  kind: call_expression
+  has:
+    field: function
+    kind: selector_expression
+    all:
+      - has:
+          field: operand
+          regex: "^os$"
+      - has:
+          field: field
+          regex: "^(Getenv|LookupEnv)$"

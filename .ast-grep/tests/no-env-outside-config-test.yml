@@ -1,0 +1,21 @@
+id: no-env-outside-config
+valid:
+  - |
+    package main
+    func run() {
+        cfg := config.Load()
+        _ = cfg.Port
+    }
+invalid:
+  - |
+    package main
+    func getSecret() {
+        secret := os.Getenv("SECRET_KEY")
+        _ = secret
+    }
+  - |
+    package main
+    func getPort() {
+        val, ok := os.LookupEnv("PORT")
+        _, _ = val, ok
+    }

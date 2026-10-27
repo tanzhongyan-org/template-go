@@ -1,0 +1,13 @@
+id: no-empty-go-stubs
+valid:
+  - |
+    func RealWork() int {
+        return 42
+    }
+  - |
+    func (m MockHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+    }
+invalid:
+  - |
+    func Stub() {
+    }
