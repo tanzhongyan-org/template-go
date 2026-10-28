@@ -40,7 +40,7 @@ flowchart LR
 - No empty function stubs. [enforced by ast-grep]
 - Ignored errors, unclosed bodies and rows, and unwrapped errors are rejected. [enforced by golangci-lint]
 - Duplicated code blocks of 100 tokens or more are rejected. [enforced by golangci-lint]
-- Directories outside `scripts/repo-policy.json` `layout.allow` are rejected. [enforced by repo-policy]
+- Top-level directories outside `scripts/repo-policy.json` `layout.allow` are rejected; nested directories are free. [enforced by repo-policy]
 - Every direct module and tool has a row in `docs/dependencies.md`. [enforced by repo-policy]
 - `internal/db` matches `sql/`. [enforced by sqlc diff]
 - Requests above 1 MiB are rejected with 413. [enforced by tests]

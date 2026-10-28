@@ -8,7 +8,14 @@ A starting point for a Go HTTP service backed by Postgres. Use it when you want 
 
 ## Quick start
 
-You need Go (version in `go.mod`), Docker, Node 22+ and `make`.
+You need:
+
+- Go (version in `go.mod`).
+- Docker, for the local Postgres.
+- Node 22+, for the Markdown and ast-grep checks.
+- GNU make. On Windows run `winget install ezwinports.make`; on macOS run `xcode-select --install`.
+
+If port 5432 is taken, set `POSTGRES_PORT` in `.env` and update `DATABASE_URL` to match. To skip the agent stop hook for one session, set `AGENT_HOOK_SKIP=1`.
 
 ```bash
 gh repo create my-service --template tanzhongyan-org/template-go --private --clone
@@ -36,7 +43,7 @@ You should see `{"status":"healthy","appName":"template-go",...}`.
 
 ## After creating your repo
 
-1. Run the **Initialize Template Repository** workflow from the Actions tab. It renames the module and opens a "Template follow-ups" issue.
+1. The **Initialize Template Repository** workflow runs on your first push to `main`. It renames the module and opens a "Template follow-ups" issue. If it did not run, start it from the Actions tab.
 2. List what you still have to change:
 
    ```bash
@@ -55,6 +62,7 @@ Copy `.env.example` to `.env`. The server reads these variables in `internal/con
 | `APP_ENV` | no | `development` | Environment label shown in `/health`. |
 | `PORT` | no | `8080` | HTTP listen port. |
 | `DATABASE_URL` | no | local Postgres URL | Postgres connection string. |
+| `POSTGRES_PORT` | no | `5432` | Host port for the Postgres container in `compose.yaml`. |
 | `TRUST_IDENTITY_HEADER` | no | `false` | When `true`, the `x-user-id` header identifies the caller. When `false`, `/notes` answers 401. |
 
 > [!WARNING]

@@ -15,7 +15,7 @@ This is the only agent instruction file. Claude Code, Codex, Cursor, Copilot and
 ## 2. Where things go
 
 - New code goes where the code map in [ARCHITECTURE.md](ARCHITECTURE.md) says. Reuse the helpers listed there before writing new ones.
-- New top-level or `internal/` directories need an ADR in `docs/decisions/` and a `layout.allow` change in `scripts/repo-policy.json` in the same PR.
+- Nest new code freely inside existing top-level directories. A new top-level directory needs a `layout.allow` entry in `scripts/repo-policy.json`; record the reason in `docs/decisions/` if it changes the architecture.
 - Generic grab-bag packages (`utils`, `helpers`) are banned.
 
 ## 3. Go Idiomatic Invariants

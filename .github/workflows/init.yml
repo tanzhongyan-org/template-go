@@ -1,6 +1,8 @@
 name: Initialize Template Repository
 
 on:
+  push:
+    branches: [main]
   workflow_dispatch:
 
 permissions: {}
@@ -17,32 +19,48 @@ jobs:
     timeout-minutes: 10
     permissions:
       contents: write
+    outputs:
+      initialized: ${{ steps.marker.outputs.pending }}
     steps:
       # This job pushes the rename commit, so it keeps the checkout credentials.
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1 # zizmor: ignore[artipacked]
 
+      # The module path in go.mod still names the template until the first run, so later pushes exit early.
+      - name: Check for template marker
+        id: marker
+        run: |
+          if grep -qF "github.com/tanzhongyan-org/template-go" go.mod; then
+            echo "pending=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "pending=false" >> "$GITHUB_OUTPUT"
+            echo "Template already initialized; nothing to do."
+          fi
+
       - name: Rename template placeholders
+        if: steps.marker.outputs.pending == 'true'
         run: |
           NEW_NAME="${GITHUB_REPOSITORY#*/}"
-          NEW_MODULE="github.com/${GITHUB_REPOSITORY}"
+          NEW_DB="$(printf '%s' "$NEW_NAME" | tr -c 'A-Za-z0-9\n' '_')"
           echo "Renaming template-go to $NEW_NAME..."
-          find . -type f \( -name "*.mod" -o -name "*.go" -o -name "*.md" -o -name "*.jsonc" -o -name "*.json" -o -name "*.yml" -o -name "*.yaml" -o -name "Makefile" \) \
-            -not -path "*/.git/*" \
-            -not -path "./.github/workflows/*" \
-            -exec sed -i "s|github.com/tanzhongyan-org/template-go|$NEW_MODULE|g" {} +
-          find . -type f \( -name "*.mod" -o -name "*.go" -o -name "*.md" -o -name "*.jsonc" -o -name "*.json" -o -name "*.yml" -o -name "*.yaml" -o -name "Makefile" \) \
-            -not -path "*/.git/*" \
-            -not -path "./.github/workflows/*" \
-            -exec sed -i "s/template-go/$NEW_NAME/g" {} +
+          # Workflow files are skipped: the default token cannot push changes to them.
+          grep -rIlE "template[-_]go" . \
+            --exclude-dir=.git --exclude-dir=node_modules --exclude-dir=workflows \
+            | xargs -r sed -i \
+              -e "s|tanzhongyan-org/template-go|${GITHUB_REPOSITORY}|g" \
+              -e "s|template_go|${NEW_DB}|g" \
+              -e "s|template-go|${NEW_NAME}|g"
 
       - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        if: steps.marker.outputs.pending == 'true'
         with:
           go-version-file: go.mod
 
       - name: Tidy Go modules
+        if: steps.marker.outputs.pending == 'true'
         run: go mod tidy
 
       - name: Commit and push changes
+        if: steps.marker.outputs.pending == 'true'
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
@@ -53,6 +71,7 @@ jobs:
   template-followups:
     name: Open template follow-ups issue
     needs: init-repo
+    if: needs.init-repo.outputs.initialized == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 5
     permissions:

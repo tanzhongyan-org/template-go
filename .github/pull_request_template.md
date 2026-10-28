@@ -19,4 +19,4 @@ Linked issue: <!-- Closes #123 -->
 - [ ] Tests cover the public entry points I changed.
 - [ ] Docs are updated in this pull request.
 - [ ] No new dependency without a row in `docs/dependencies.md`.
-- [ ] No new directory without an ADR and a `layout.allow` change.
+- [ ] Any new top-level directory is in `layout.allow` in `scripts/repo-policy.json`.
