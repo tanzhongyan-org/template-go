@@ -90,6 +90,6 @@ See [ARCHITECTURE.md](ARCHITECTURE.md) for the code map.
 
 ## More
 
-- [CONTRIBUTING.md](CONTRIBUTING.md)
-- [SECURITY.md](SECURITY.md)
+- [CONTRIBUTING.md](.github/CONTRIBUTING.md)
+- [SECURITY.md](.github/SECURITY.md)
 - [LICENSE](LICENSE)

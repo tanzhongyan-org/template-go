@@ -8,7 +8,7 @@ Choices such as the router, the database access layer and the layout shape every
 
 We record each irreversible technical choice as a short ADR in `docs/decisions/`, named `<number>-<slug>.md`, in the Context, Decision, Consequences format. We never edit an accepted ADR. A change of mind is a new ADR that states which one it supersedes.
 
-A new top-level directory, or a new directory under `internal/`, needs an ADR and a `layout.allow` change in `repo-policy.json` in the same pull request.
+A new top-level directory, or a new directory under `internal/`, needs an ADR and a `layout.allow` change in `scripts/repo-policy.json` in the same pull request.
 
 ## Consequences
 

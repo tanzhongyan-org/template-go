@@ -28,11 +28,11 @@ jobs:
           echo "Renaming template-go to $NEW_NAME..."
           find . -type f \( -name "*.mod" -o -name "*.go" -o -name "*.md" -o -name "*.jsonc" -o -name "*.json" -o -name "*.yml" -o -name "*.yaml" -o -name "Makefile" \) \
             -not -path "*/.git/*" \
-            -not -path "*/.github/*" \
+            -not -path "./.github/workflows/*" \
             -exec sed -i "s|github.com/tanzhongyan-org/template-go|$NEW_MODULE|g" {} +
           find . -type f \( -name "*.mod" -o -name "*.go" -o -name "*.md" -o -name "*.jsonc" -o -name "*.json" -o -name "*.yml" -o -name "*.yaml" -o -name "Makefile" \) \
             -not -path "*/.git/*" \
-            -not -path "*/.github/*" \
+            -not -path "./.github/workflows/*" \
             -exec sed -i "s/template-go/$NEW_NAME/g" {} +
 
       - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0

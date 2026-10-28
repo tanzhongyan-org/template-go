@@ -49,7 +49,7 @@ Follow the notes slice. Touch the files in this order:
 6. Tests: call the public endpoints through `SetupRouter`. Cover the success path, validation errors, 401 and cross-owner access (404).
 7. Docs: update the code map in `ARCHITECTURE.md`, add a row to `docs/dependencies.md` for any new module, and add new config keys to `.env.example` and the README table.
 
-A new top-level or `internal/` directory needs an ADR in `docs/decisions/` and a `layout.allow` change in `repo-policy.json` in the same pull request.
+A new top-level or `internal/` directory needs an ADR in `docs/decisions/` and a `layout.allow` change in `scripts/repo-policy.json` in the same pull request.
 
 ## Commits and pull requests
 
@@ -60,7 +60,7 @@ A new top-level or `internal/` directory needs an ADR in `docs/decisions/` and a
 
 ## Where docs go
 
-See [docs/README.md](docs/README.md).
+See [docs/README.md](../docs/README.md).
 
 ## Maintainers
 
@@ -85,4 +85,4 @@ gh api repos/OWNER/REPO/rulesets --method POST --input .github/rulesets/main.jso
 
 Run the initialize workflow before you import the ruleset. It pushes directly to `main`, which the ruleset blocks.
 
-Renovate reads `renovate.json`. Versions in `go.mod`, in `# renovate:` annotated lines of the `Makefile` and in workflows are the only places tool versions live.
+Renovate reads `.github/renovate.json`. Versions in `go.mod`, in `# renovate:` annotated lines of the `Makefile` and in workflows are the only places tool versions live.
