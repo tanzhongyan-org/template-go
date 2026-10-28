@@ -53,20 +53,21 @@ function matchesAny(path, globs) {
   return globs.some((g) => globToRegex(g).test(path));
 }
 
+// Only top-level directories are checked against layout.allow. Anything
+// nested inside an allowed directory is free, so new modules, test folders and
+// packages never trip the policy.
 function checkLayout(policy, files) {
   const allow = policy.layout?.allow ?? [];
-  const dirs = new Set();
+  const tops = new Set();
   for (const f of files) {
-    let d = dirname(f);
-    while (d !== ".") {
-      dirs.add(d);
-      d = dirname(d);
-    }
+    if (f.includes("/")) tops.add(f.split("/")[0]);
   }
   const errors = [];
-  for (const d of [...dirs].sort()) {
+  for (const d of [...tops].sort()) {
     if (!matchesAny(d, allow)) {
-      errors.push(`layout: directory '${d}/' is not in ${POLICY_FILE} layout.allow`);
+      errors.push(
+        `layout: new top-level directory '${d}/'. If it belongs, add "${d}" to ${POLICY_FILE} layout.allow`,
+      );
     }
   }
   const forbid = policy.layout?.forbid ?? [];
