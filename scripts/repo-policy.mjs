@@ -1,10 +1,11 @@
 #!/usr/bin/env node
 // Fleet-shared repo policy checks. Keep this file byte-identical across
-// tanzhongyan-org templates; repo-specific settings live in repo-policy.json.
+// tanzhongyan-org templates; repo-specific settings live in scripts/repo-policy.json.
 //
 // Usage: node scripts/repo-policy.mjs [layout|docs|deps|drift|all]
 //
-//   layout  Every tracked directory matches an entry in layout.allow.
+//   layout  Every tracked directory matches an entry in layout.allow, and no
+//           file matches layout.forbid.
 //   docs    Repo paths, `make` targets and relative links cited in Markdown
 //           exist; every key in .env.example is documented in the README.
 //   deps    Every direct dependency has a row in the dependency ledger, and
@@ -15,7 +16,7 @@ import { execFileSync } from "node:child_process";
 import { existsSync, readFileSync } from "node:fs";
 import { dirname, join, normalize } from "node:path";
 
-const POLICY_FILE = "repo-policy.json";
+const POLICY_FILE = "scripts/repo-policy.json";
 
 function trackedFiles() {
   return execFileSync("git", ["ls-files", "-z", "--cached", "--others", "--exclude-standard"], {
@@ -68,6 +69,10 @@ function checkLayout(policy, files) {
       errors.push(`layout: directory '${d}/' is not in ${POLICY_FILE} layout.allow`);
     }
   }
+  const forbid = policy.layout?.forbid ?? [];
+  for (const f of files) {
+    if (matchesAny(f, forbid)) errors.push(`layout: '${f}' matches ${POLICY_FILE} layout.forbid`);
+  }
   return errors;
 }
 
@@ -75,7 +80,7 @@ const PATH_LIKE = /^\.?[A-Za-z0-9_\-[\]().]+(\/[A-Za-z0-9_\-[\]().]+)*\/?$/;
 const ROOT_FILE = /^\.?[A-Za-z0-9_-]+(\.[A-Za-z0-9_-]+)*\.(md|json|jsonc|ya?ml|toml|lock)$/;
 
 // A code span is checked as a repo path when it has a slash, or names a
-// root-style config or doc file such as `compose.yaml` or `CONTRIBUTING.md`.
+// root-style config or doc file such as `compose.yaml` or `README.md`.
 // Module paths (`github.com/x/y`) and scoped packages (`@scope/pkg`) are skipped.
 function looksLikeRepoPath(span, exists) {
   if (!PATH_LIKE.test(span) || /^\d/.test(span)) return false;

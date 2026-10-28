@@ -2,6 +2,7 @@
 
 Inherits: Universal L0 Invariants (workflow/AGENTS.md).
 Do not repeat global workflow rules here. Architecture and the code map live in [ARCHITECTURE.md](ARCHITECTURE.md).
+This is the only agent instruction file. Claude Code, Codex, Cursor, Copilot and Gemini read it. Do not add CLAUDE.md, GEMINI.md or other per-tool copies: Claude Code ignores this file once a CLAUDE.md exists. `make policy` rejects them.
 
 ## 1. Project Technology Stack
 
@@ -14,7 +15,7 @@ Do not repeat global workflow rules here. Architecture and the code map live in 
 ## 2. Where things go
 
 - New code goes where the code map in [ARCHITECTURE.md](ARCHITECTURE.md) says. Reuse the helpers listed there before writing new ones.
-- New top-level or `internal/` directories need an ADR in `docs/decisions/` and a `layout.allow` change in `repo-policy.json` in the same PR.
+- New top-level or `internal/` directories need an ADR in `docs/decisions/` and a `layout.allow` change in `scripts/repo-policy.json` in the same PR.
 - Generic grab-bag packages (`utils`, `helpers`) are banned.
 
 ## 3. Go Idiomatic Invariants
