@@ -6,6 +6,8 @@
       ".claude",
       ".gemini",
       ".github",
+      "api",
+      "clients",
       "cmd",
       "docs",
       "internal",
@@ -51,14 +53,6 @@
       "sources": [
         {
           "file": "compose.yaml",
-          "pattern": "image:\\s*postgres:(\\S+)"
-        },
-        {
-          "file": ".github/workflows/ci.yml",
-          "pattern": "image:\\s*postgres:(\\S+)"
-        },
-        {
-          "file": ".github/workflows/dast.yml",
           "pattern": "image:\\s*postgres:(\\S+)"
         }
       ]

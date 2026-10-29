@@ -36,6 +36,7 @@ func TestLoad_CustomEnv(t *testing.T) {
 	t.Setenv("APP_NAME", "custom-service")
 	t.Setenv("APP_ENV", "production")
 	t.Setenv("PORT", "9000")
+	t.Setenv("TRUST_IDENTITY_HEADER", "false")
 
 	cfg, err := Load()
 	if err != nil {
@@ -78,5 +79,51 @@ func TestLoad_TrustIdentityHeader(t *testing.T) {
 	t.Setenv("TRUST_IDENTITY_HEADER", "maybe")
 	if _, err := Load(); err == nil {
 		t.Fatal("expected error for invalid TRUST_IDENTITY_HEADER")
+	}
+}
+
+func TestLoad_DevIdentityRefusedOutsideDevelopment(t *testing.T) {
+	for _, env := range []string{"production", "preview"} {
+		t.Setenv("APP_ENV", env)
+		t.Setenv("TRUST_IDENTITY_HEADER", "true")
+		if _, err := Load(); err == nil {
+			t.Errorf("expected boot to fail with TRUST_IDENTITY_HEADER=true and APP_ENV=%q", env)
+		}
+	}
+
+	t.Setenv("APP_ENV", "production")
+	t.Setenv("TRUST_IDENTITY_HEADER", "false")
+	if _, err := Load(); err != nil {
+		t.Errorf("expected boot to pass without the dev shortcut in production: %v", err)
+	}
+}
+
+func TestLoad_JWTSettings(t *testing.T) {
+	t.Setenv("APP_ENV", "development")
+	t.Setenv("TRUST_IDENTITY_HEADER", "false")
+	t.Setenv("AUTH_JWKS_URL", "https://auth.example.test/.well-known/jwks.json")
+	t.Setenv("AUTH_ISSUER", "https://auth.example.test")
+	t.Setenv("AUTH_AUDIENCE", "notes-api")
+	cfg, err := Load()
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if !cfg.JWTEnabled() {
+		t.Error("expected JWTEnabled to be true")
+	}
+
+	t.Setenv("AUTH_AUDIENCE", "")
+	if _, err := Load(); err == nil {
+		t.Error("expected error when only some AUTH_ variables are set")
+	}
+}
+
+func TestLoad_JWTDefaultsToOff(t *testing.T) {
+	cfg, err := Load()
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if cfg.JWTEnabled() {
+		t.Error("expected JWTEnabled to default to false")
 	}
 }

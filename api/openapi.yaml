@@ -1,0 +1,358 @@
+# TEMPLATE-TODO(example): replace the notes paths with your own domain, then run `make openapi-client`.
+openapi: 3.1.0
+info:
+  title: template-go API
+  version: 1.0.0
+  description: >-
+    Example API for the template-go service. The spec is the contract:
+    every route the server registers must appear here (`openapi_test.go` fails
+    otherwise), and `clients/ts` is generated from this file (`make spec-check`
+    fails on drift).
+servers:
+  - url: http://localhost:8080
+security:
+  - bearerAuth: []
+  - headerIdentity: []
+paths:
+  /:
+    get:
+      summary: Greeting
+      operationId: getRoot
+      security: []
+      responses:
+        '200':
+          description: Plain-text greeting.
+          content:
+            text/plain:
+              schema:
+                type: string
+  /health:
+    get:
+      summary: Health check
+      operationId: getHealth
+      security: []
+      responses:
+        '200':
+          description: The server is running.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthStatus'
+  /notes:
+    get:
+      summary: List my notes
+      operationId: listNotes
+      responses:
+        '200':
+          description: Notes owned by the caller.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Note'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+    post:
+      summary: Create a note
+      operationId: createNote
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/NoteInput'
+      responses:
+        '201':
+          description: The created note.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Note'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '413':
+          $ref: '#/components/responses/BodyTooLarge'
+  /notes/{id}:
+    get:
+      summary: Get one note
+      operationId: getNote
+      parameters:
+        - $ref: '#/components/parameters/NoteId'
+      responses:
+        '200':
+          description: The note.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Note'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    put:
+      summary: Update a note
+      operationId: updateNote
+      parameters:
+        - $ref: '#/components/parameters/NoteId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/NoteUpdate'
+      responses:
+        '200':
+          description: The updated note.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Note'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '413':
+          $ref: '#/components/responses/BodyTooLarge'
+    delete:
+      summary: Delete a note
+      operationId: deleteNote
+      parameters:
+        - $ref: '#/components/parameters/NoteId'
+      responses:
+        '204':
+          description: The note was deleted.
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /api/v1:
+    get:
+      summary: API greeting
+      operationId: getAPIRoot
+      security: []
+      responses:
+        '200':
+          description: JSON greeting.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/APIGreeting'
+  /api/v1/health:
+    get:
+      summary: Health check
+      operationId: getAPIHealth
+      security: []
+      responses:
+        '200':
+          description: The server is running.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthStatus'
+  /api/v1/notes:
+    get:
+      summary: List my notes
+      operationId: listAPINotes
+      responses:
+        '200':
+          description: Notes owned by the caller.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Note'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+    post:
+      summary: Create a note
+      operationId: createAPINote
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/NoteInput'
+      responses:
+        '201':
+          description: The created note.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Note'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '413':
+          $ref: '#/components/responses/BodyTooLarge'
+  /api/v1/notes/{id}:
+    get:
+      summary: Get one note
+      operationId: getAPINote
+      parameters:
+        - $ref: '#/components/parameters/NoteId'
+      responses:
+        '200':
+          description: The note.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Note'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    put:
+      summary: Update a note
+      operationId: updateAPINote
+      parameters:
+        - $ref: '#/components/parameters/NoteId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/NoteUpdate'
+      responses:
+        '200':
+          description: The updated note.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Note'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '413':
+          $ref: '#/components/responses/BodyTooLarge'
+    delete:
+      summary: Delete a note
+      operationId: deleteAPINote
+      parameters:
+        - $ref: '#/components/parameters/NoteId'
+      responses:
+        '204':
+          description: The note was deleted.
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: Product JWT, verified against AUTH_JWKS_URL. Use this in production.
+    headerIdentity:
+      type: apiKey
+      in: header
+      name: x-user-id
+      description: Dev-only caller identity, honoured only when TRUST_IDENTITY_HEADER=true.
+  parameters:
+    NoteId:
+      name: id
+      in: path
+      required: true
+      schema:
+        type: string
+  schemas:
+    Note:
+      type: object
+      required: [id, owner_id, title, body, created_at]
+      properties:
+        id:
+          type: string
+        owner_id:
+          type: string
+        title:
+          type: string
+          maxLength: 200
+        body:
+          type: string
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+    NoteInput:
+      type: object
+      required: [title, body]
+      properties:
+        title:
+          type: string
+          maxLength: 200
+        body:
+          type: string
+    NoteUpdate:
+      type: object
+      properties:
+        title:
+          type: string
+          maxLength: 200
+        body:
+          type: string
+    HealthStatus:
+      type: object
+      required: [status, appName, environment, timestamp]
+      properties:
+        status:
+          type: string
+        appName:
+          type: string
+        environment:
+          type: string
+        timestamp:
+          type: string
+          format: date-time
+    APIGreeting:
+      type: object
+      required: [message]
+      properties:
+        message:
+          type: string
+    Error:
+      type: object
+      required: [error]
+      properties:
+        error:
+          type: object
+          required: [message]
+          properties:
+            message:
+              type: string
+  responses:
+    BadRequest:
+      description: The request failed validation.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    Unauthorized:
+      description: Authentication is missing or invalid.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    NotFound:
+      description: No such note for this caller.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    BodyTooLarge:
+      description: The request body exceeds the 1 MiB cap.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'

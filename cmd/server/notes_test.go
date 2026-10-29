@@ -19,6 +19,7 @@ import (
 
 func setupTestApp(t *testing.T) (*chi.Mux, *pgxpool.Pool) {
 	t.Helper()
+	t.Setenv("APP_ENV", "test")
 	t.Setenv("TRUST_IDENTITY_HEADER", "true")
 	cfg, err := config.Load()
 	if err != nil {
