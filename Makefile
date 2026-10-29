@@ -10,7 +10,7 @@ HEY_API_VERSION := 0.99.0
 # export, which TypeScript 7 removed. Drop the second package once hey-api
 # supports TypeScript 7.
 # renovate: datasource=npm depName=typescript
-TYPESCRIPT_VERSION := 5.9.3
+TYPESCRIPT_VERSION := 6.0.3
 # renovate: datasource=github-releases depName=gitleaks/gitleaks extractVersion=^v(?<version>.*)$
 GITLEAKS_VERSION := 8.30.1
 
