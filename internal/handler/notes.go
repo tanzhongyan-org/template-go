@@ -6,12 +6,14 @@ import (
 	"log"
 	"net/http"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgtype"
+	"github.com/tanzhongyan-org/template-go/internal/auth"
 	"github.com/tanzhongyan-org/template-go/internal/config"
 	"github.com/tanzhongyan-org/template-go/internal/db"
 )
@@ -73,10 +75,23 @@ func ownerFrom(ctx context.Context) string {
 type NotesHandler struct {
 	queries *db.Queries
 	trust   bool
+
+	jwksURL  string
+	issuer   string
+	audience string
+
+	mu       sync.Mutex
+	verifier *auth.Verifier
 }
 
 func NewNotesHandler(queries *db.Queries, cfg *config.Config) *NotesHandler {
-	return &NotesHandler{queries: queries, trust: cfg.TrustIdentityHeader}
+	return &NotesHandler{
+		queries:  queries,
+		trust:    cfg.TrustIdentityHeader,
+		jwksURL:  cfg.JWKSURL,
+		issuer:   cfg.JWTIssuer,
+		audience: cfg.JWTAudience,
+	}
 }
 
 // Routes returns the notes routes behind the identity check.
@@ -91,11 +106,17 @@ func (h *NotesHandler) Routes() chi.Router {
 	return r
 }
 
-// requireOwner is the single identity boundary. It fails closed: without
-// TRUST_IDENTITY_HEADER=true, or with a missing or blank x-user-id, it answers 401.
+// requireOwner is the single identity boundary. With AUTH_JWKS_URL set it
+// verifies the Authorization header against the product JWKS; otherwise it
+// honours x-user-id only when TRUST_IDENTITY_HEADER=true. It fails closed:
+// any other shape answers 401.
 // TEMPLATE-TODO(auth): replace header identity with real authentication
 func (h *NotesHandler) requireOwner(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if h.jwksURL != "" {
+			h.requireJWT(w, r, next)
+			return
+		}
 		owner := strings.TrimSpace(r.Header.Get("x-user-id"))
 		if !h.trust || owner == "" {
 			writeError(w, http.StatusUnauthorized, "Authentication required")
@@ -103,6 +124,44 @@ func (h *NotesHandler) requireOwner(next http.Handler) http.Handler {
 		}
 		next.ServeHTTP(w, r.WithContext(context.WithValue(r.Context(), ownerKey{}, owner)))
 	})
+}
+
+// requireJWT verifies the Authorization header against the product JWKS and
+// stores the subject as the caller identity.
+func (h *NotesHandler) requireJWT(w http.ResponseWriter, r *http.Request, next http.Handler) {
+	raw, ok := strings.CutPrefix(r.Header.Get("Authorization"), "Bearer ")
+	if !ok || strings.TrimSpace(raw) == "" {
+		writeError(w, http.StatusUnauthorized, "Authentication required")
+		return
+	}
+	v, err := h.verifierFor()
+	if err != nil {
+		log.Printf("auth: %v", err)
+		writeError(w, http.StatusUnauthorized, "Authentication required")
+		return
+	}
+	subject, err := v.Verify(strings.TrimSpace(raw))
+	if err != nil {
+		writeError(w, http.StatusUnauthorized, "Authentication required")
+		return
+	}
+	next.ServeHTTP(w, r.WithContext(context.WithValue(r.Context(), ownerKey{}, subject)))
+}
+
+// verifierFor lazily builds the JWT verifier on first use and caches it, so
+// the JWKS document is fetched only when the JWT path serves traffic.
+func (h *NotesHandler) verifierFor() (*auth.Verifier, error) {
+	h.mu.Lock()
+	defer h.mu.Unlock()
+	if h.verifier != nil {
+		return h.verifier, nil
+	}
+	v, err := auth.NewVerifier(h.jwksURL, h.issuer, h.audience)
+	if err != nil {
+		return nil, err
+	}
+	h.verifier = v
+	return v, nil
 }
 
 // cleanTitle trims and validates a note title. A non-empty message is the 400 reason.
