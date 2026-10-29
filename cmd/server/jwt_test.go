@@ -141,6 +141,7 @@ func TestNotes_JWTIgnoresTheDevHeader(t *testing.T) {
 
 func setupJWTApp(t *testing.T, jwksURL string) (*chi.Mux, *pgxpool.Pool) {
 	t.Helper()
+	t.Setenv("APP_ENV", "test")
 	t.Setenv("TRUST_IDENTITY_HEADER", "false")
 	t.Setenv("AUTH_JWKS_URL", jwksURL)
 	t.Setenv("AUTH_ISSUER", jwtTestIssuer)

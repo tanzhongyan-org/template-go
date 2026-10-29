@@ -36,6 +36,7 @@ func TestLoad_CustomEnv(t *testing.T) {
 	t.Setenv("APP_NAME", "custom-service")
 	t.Setenv("APP_ENV", "production")
 	t.Setenv("PORT", "9000")
+	t.Setenv("TRUST_IDENTITY_HEADER", "false")
 
 	cfg, err := Load()
 	if err != nil {
@@ -98,6 +99,8 @@ func TestLoad_DevIdentityRefusedOutsideDevelopment(t *testing.T) {
 }
 
 func TestLoad_JWTSettings(t *testing.T) {
+	t.Setenv("APP_ENV", "development")
+	t.Setenv("TRUST_IDENTITY_HEADER", "false")
 	t.Setenv("AUTH_JWKS_URL", "https://auth.example.test/.well-known/jwks.json")
 	t.Setenv("AUTH_ISSUER", "https://auth.example.test")
 	t.Setenv("AUTH_AUDIENCE", "notes-api")
