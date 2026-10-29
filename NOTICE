@@ -1,0 +1,11 @@
+github.com/go-chi/chi/v5,https://github.com/go-chi/chi/blob/v5.5.0/LICENSE,MIT
+github.com/golang-jwt/jwt/v5,https://github.com/golang-jwt/jwt/blob/v5.3.1/LICENSE,MIT
+github.com/google/uuid,https://github.com/google/uuid/blob/v1.6.0/LICENSE,BSD-3-Clause
+github.com/jackc/pgpassfile,https://github.com/jackc/pgpassfile/blob/v1.0.0/LICENSE,MIT
+github.com/jackc/pgservicefile,https://github.com/jackc/pgservicefile/blob/5a60cdf6a761/LICENSE,MIT
+github.com/jackc/pgx/v5,https://github.com/jackc/pgx/blob/v5.11.0/LICENSE,MIT
+github.com/jackc/puddle/v2,https://github.com/jackc/puddle/blob/v2.2.2/LICENSE,MIT
+github.com/tanzhongyan-org/template-go,https://github.com/tanzhongyan-org/template-go/blob/HEAD/LICENSE,MIT
+golang.org/x/sync/semaphore,https://cs.opensource.google/go/x/sync/+/v0.24.0:LICENSE,BSD-3-Clause
+golang.org/x/text,https://cs.opensource.google/go/x/text/+/v0.43.0:LICENSE,BSD-3-Clause
+gopkg.in/yaml.v3,https://github.com/go-yaml/yaml/blob/v3.0.1/LICENSE,MIT
