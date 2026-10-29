@@ -22,6 +22,11 @@
       "description": "Hold the Node 22 LTS line across engines, actions, and types",
       "matchPackageNames": ["node", "@types/node"],
       "allowedVersions": "<23"
+    },
+    {
+      "description": "Hold TypeScript below 7 until hey-api supports it (Makefile TYPESCRIPT_VERSION)",
+      "matchPackageNames": ["typescript"],
+      "allowedVersions": "<7"
     }
   ],
   "customManagers": [

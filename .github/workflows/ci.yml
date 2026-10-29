@@ -6,139 +6,15 @@ on:
   pull_request:
     branches: [main]
 
-permissions: {}
-
-concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+permissions:
+  contents: read
+  pull-requests: read
 
 jobs:
-  gates:
-    name: gates
-    runs-on: ubuntu-latest
-    timeout-minutes: 20
-    permissions:
-      contents: read
-    services:
-      postgres:
-        image: postgres:18-alpine
-        env:
-          POSTGRES_USER: postgres
-          POSTGRES_PASSWORD: password
-          POSTGRES_DB: template_go
-        ports:
-          - 5432:5432
-        options: >-
-          --health-cmd pg_isready
-          --health-interval 5s
-          --health-timeout 5s
-          --health-retries 5
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          persist-credentials: false
-
-      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
-        with:
-          go-version-file: go.mod
-
-      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
-        with:
-          node-version: 22
-
-      # The release binary of golangci-lint is built with an older Go than
-      # go.mod targets, so build it with the Go that setup-go installed.
-      - name: Install golangci-lint
-        uses: golangci/golangci-lint-action@ba0d7d2ec06a0ea1cb5fa41b2e4a3ab91d21278a # v9.3.0
-        with:
-          # renovate: datasource=github-releases depName=golangci/golangci-lint
-          version: v2.15.0
-          install-mode: goinstall
-          install-only: true
-
-      - name: Download Go modules
-        run: go mod download
-
-      - name: Run verification gates
-        run: make check
-        env:
-          DATABASE_URL: postgres://postgres:password@localhost:5432/template_go?sslmode=disable
-
-  security:
-    name: security
-    runs-on: ubuntu-latest
-    timeout-minutes: 15
-    permissions:
-      contents: read
-      actions: read
-    env:
-      # renovate: datasource=github-releases depName=gitleaks/gitleaks extractVersion=^v(?<version>.*)$
-      GITLEAKS_VERSION: 8.30.1
-      # renovate: datasource=pypi depName=zizmor
-      ZIZMOR_VERSION: 1.31.1
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          fetch-depth: 0
-          persist-credentials: false
-
-      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
-        with:
-          go-version-file: go.mod
-
-      - name: Scan history for secrets
-        run: |
-          base="https://github.com/gitleaks/gitleaks/releases/download/v${GITLEAKS_VERSION}"
-          curl -sSfL -O "${base}/gitleaks_${GITLEAKS_VERSION}_linux_x64.tar.gz" -O "${base}/gitleaks_${GITLEAKS_VERSION}_checksums.txt"
-          grep " gitleaks_${GITLEAKS_VERSION}_linux_x64.tar.gz$" "gitleaks_${GITLEAKS_VERSION}_checksums.txt" | sha256sum --check --strict
-          tar -xzf "gitleaks_${GITLEAKS_VERSION}_linux_x64.tar.gz" gitleaks
-          ./gitleaks git --no-banner --redact --exit-code 1 .
-
-      - name: Audit dependencies
-        run: make audit
-
-      - name: Lint workflows
-        run: pipx run "zizmor==${ZIZMOR_VERSION}" --min-severity medium .github/workflows
-        env:
-          GH_TOKEN: ${{ github.token }}
-
-  dependency-review:
-    name: dependency-review
-    if: github.event_name == 'pull_request' && (!github.event.repository.private || vars.ENABLE_CODE_SECURITY == 'true')
-    runs-on: ubuntu-latest
-    timeout-minutes: 10
-    permissions:
-      contents: read
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          persist-credentials: false
-
-      - name: Probe dependency graph
-        id: probe
-        run: |
-          if gh api "repos/${GITHUB_REPOSITORY}/dependency-graph/sbom" --silent; then
-            echo "enabled=true" >> "$GITHUB_OUTPUT"
-          else
-            echo "enabled=false" >> "$GITHUB_OUTPUT"
-            echo "::warning::Dependency graph is off; enable it in Settings > Code security to run dependency review."
-          fi
-        env:
-          GH_TOKEN: ${{ github.token }}
-
-      - if: steps.probe.outputs.enabled == 'true'
-        uses: actions/dependency-review-action@a1d282b36b6f3519aa1f3fc636f609c47dddb294 # v5.0.0
-        with:
-          fail-on-severity: high
-
-  ci-passed:
-    name: ci-passed
-    if: always()
-    needs: [gates, security, dependency-review]
-    runs-on: ubuntu-latest
-    timeout-minutes: 5
-    permissions: {}
-    steps:
-      - name: Require every job to pass or be skipped
-        run: |
-          echo '${{ toJSON(needs) }}' | jq -e 'all(.[]; .result == "success" or .result == "skipped")' >/dev/null
+  ci:
+    uses: tanzhongyan-org/.github/.github/workflows/ci.yml@0c54f703d2d0d24b6ec61c8ea0f0d1a7d220f3e9 # shared CI pin, updated by Renovate
+    with:
+      runtime: go
+      postgres-db: template_go
+      database-url: postgres://postgres:password@localhost:5432/template_go?sslmode=disable
+      install-command: go mod download

@@ -8,41 +8,15 @@ on:
   schedule:
     - cron: "17 4 * * 1"
 
-permissions: {}
-
-concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+permissions:
+  contents: read
+  security-events: write
+  actions: read
 
 jobs:
-  analyze:
-    name: analyze (${{ matrix.language }})
-    if: ${{ !github.event.repository.private || vars.ENABLE_CODE_SECURITY == 'true' }}
-    runs-on: ubuntu-latest
-    timeout-minutes: 30
-    permissions:
-      contents: read
-      security-events: write
-    strategy:
-      fail-fast: false
-      matrix:
-        language: [go, actions]
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          persist-credentials: false
-
-      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
-        if: matrix.language == 'go'
-        with:
-          go-version-file: go.mod
-
-      - uses: github/codeql-action/init@9b3254085494b55a0f7c4c2b3d2d52cc712ce370 # v4.39.1
-        with:
-          languages: ${{ matrix.language }}
-          queries: security-extended
-          build-mode: ${{ matrix.language == 'go' && 'autobuild' || 'none' }}
-
-      - uses: github/codeql-action/analyze@9b3254085494b55a0f7c4c2b3d2d52cc712ce370 # v4.39.1
-        with:
-          category: /language:${{ matrix.language }}
+  codeql:
+    uses: tanzhongyan-org/.github/.github/workflows/codeql.yml@0c54f703d2d0d24b6ec61c8ea0f0d1a7d220f3e9 # shared CI pin, updated by Renovate
+    with:
+      runtime: go
+      language: go
+      build-mode: autobuild
