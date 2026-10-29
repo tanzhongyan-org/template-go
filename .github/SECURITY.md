@@ -27,5 +27,7 @@ Only `main` is supported.
 | Code scanning | CodeQL with `security-extended` queries, Go and GitHub Actions | Push, pull request, weekly |
 | Secrets | gitleaks over full history; staged scan in the pre-commit hook | Every pull request |
 | Dependencies | `govulncheck` (`make audit`) and dependency review at high severity | Every pull request |
+| Licences | `make licenses`: every dependency licence inside the allowlist, `NOTICE` regenerated | Every pull request |
+| Security target | `make security`: gitleaks, govulncheck and the new-dependency check | Every pull request |
 | Workflows | zizmor | Every pull request |
 | Dynamic scan | OWASP ZAP baseline against the running server | Weekly |

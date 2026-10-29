@@ -39,7 +39,19 @@ You should see `{"status":"healthy","appName":"template-go",...}`.
 - A notes example slice (`/notes`, `/api/v1/notes`) with per-owner isolation.
 - Postgres access through sqlc-generated code in `internal/db`.
 - One error envelope for every endpoint: `{"error":{"message":"..."}}`.
+- Product JWT checks against `AUTH_JWKS_URL`, with the `x-user-id` header kept for local work.
+- An OpenAPI-first example API: `api/openapi.yaml` plus a generated TypeScript client in `clients/ts`.
 - Gates, security scans and agent hooks, all driven by `make`.
+
+## Services
+
+Production services follow the service ladder: a managed free tier with an official SDK first, a one-container local stand-in, self-host only when it removes code or cost. The template wires the rows that apply to a backend:
+
+| Concern | Template default | Production |
+| --- | --- | --- |
+| Database | One Postgres container (`compose.yaml`) through `DATABASE_URL`. | Managed Postgres; the app only needs the URL. |
+| Auth | The `x-user-id` header when `TRUST_IDENTITY_HEADER=true`, for local work only. | Product JWTs verified against `AUTH_JWKS_URL` in `internal/auth`. |
+| Email, SMS, AI, files, analytics, errors, uptime | Not included. | Add per the ladder when the product needs them. |
 
 ## After creating your repo
 
@@ -64,9 +76,12 @@ Copy `.env.example` to `.env`. The server reads these variables in `internal/con
 | `DATABASE_URL` | no | local Postgres URL | Postgres connection string. |
 | `POSTGRES_PORT` | no | `5432` | Host port for the Postgres container in `compose.yaml`. |
 | `TRUST_IDENTITY_HEADER` | no | `false` | When `true`, the `x-user-id` header identifies the caller. When `false`, `/notes` answers 401. |
+| `AUTH_JWKS_URL` | no | empty (off) | JWKS document URL for product JWT checks. |
+| `AUTH_ISSUER` | no | empty | Expected JWT issuer; required with `AUTH_JWKS_URL`. |
+| `AUTH_AUDIENCE` | no | empty | Expected JWT audience; required with `AUTH_JWKS_URL`. |
 
 > [!WARNING]
-> `TRUST_IDENTITY_HEADER=true` lets any caller claim any identity. Use it for local work and tests only, then replace it with real authentication.
+> `TRUST_IDENTITY_HEADER=true` lets any caller claim any identity. Use it for local work and tests only, then replace it with real authentication. The server refuses to boot with it on when `APP_ENV` is `production` or `preview`.
 
 ## Commands
 
@@ -79,9 +94,13 @@ Copy `.env.example` to `.env`. The server reads these variables in `internal/con
 | `make generate` | Regenerate `internal/db` from `sql/`. |
 | `make test` | Run tests with the race detector (needs Postgres). |
 | `make lint` / `make fix` | Run golangci-lint, optionally with fixes. |
-| `make verify` | Fast gates: vet, build, lint, anti-slop, policy, Markdown lint. |
+| `make verify` | Fast gates: vet, build, lint, anti-slop, policy, Markdown lint, spec check. |
 | `make check` | Full gates: `make verify`, sqlc drift check and tests. |
 | `make audit` | Scan dependencies with govulncheck. |
+| `make licenses` | Fail on banned dependency licences; regenerate `NOTICE`. |
+| `make security` | `make audit`, a pinned gitleaks scan and the new-dependency check. |
+| `make openapi-client` | Regenerate `clients/ts` from `api/openapi.yaml`. |
+| `make spec-check` | Fail when `clients/ts` drifted from `api/openapi.yaml`. |
 | `make template-debt` | List template markers a derived repo must resolve. |
 
 ## Project layout
@@ -89,8 +108,10 @@ Copy `.env.example` to `.env`. The server reads these variables in `internal/con
 | Path | Contents |
 | --- | --- |
 | `cmd/server` | Entry point and router. |
-| `internal` | Config, handlers and generated database code. |
+| `internal` | Config, auth, handlers and generated database code. |
 | `sql` | Schema and queries for sqlc. |
+| `api` | The OpenAPI contract (`api/openapi.yaml`). |
+| `clients` | Generated API clients (`clients/ts`). |
 | `docs` | Decisions, specs, plans and the dependency ledger. |
 | `scripts` | Agent hook and repo policy checker. |
 

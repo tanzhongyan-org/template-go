@@ -22,7 +22,7 @@ This is the only agent instruction file. Claude Code, Codex, Cursor, Copilot and
 
 - Configuration: `os.Getenv` and `os.LookupEnv` outside `internal/config` are banned [enforced by ast-grep].
 - Tenant isolation: every query on `notes` filters by `owner_id` [review-only].
-- Identity: `requireOwner` is the only reader of `x-user-id`; it fails closed with 401 [enforced by tests].
+- Identity: `requireOwner` verifies the `Authorization` header against `AUTH_JWKS_URL` when it is set, else reads `x-user-id` only when trusted; it fails closed with 401 [enforced by tests].
 - Responses: use `writeJSON`, `writeError` and `decodeJSON`; never `http.Error` with a JSON string [review-only].
 - Errors: no blank error ignores; wrap with `%w` [enforced by errcheck, errorlint].
 - Routing: rely on Chi registrations; no manual `r.Method` checks [review-only].
@@ -39,4 +39,4 @@ Run `make check` before claiming done. Use `make verify` for a fast loop without
 5. Gate 5 (Duplication): `dupl` in Gate 2, threshold 100
 6. Gate 6 (Anti-slop): `make anti-slop` (ast-grep scan and test)
 
-`make check` also runs `make policy` (layout, docs, dependency ledger, version drift) and `sqlc diff`.
+`make check` also runs `make policy` (layout, docs, dependency ledger, version drift), `sqlc diff` and the OpenAPI spec check. CI additionally runs `make licenses` and `make security`.
