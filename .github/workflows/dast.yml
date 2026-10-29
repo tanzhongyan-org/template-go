@@ -21,9 +21,7 @@ jobs:
       install-command: go mod download
       build-command: make build
       start-command: ./bin/server
-      zap-cmd-options: >-
-        -z "-config replacer.full_list(0).description=identity
-        -config replacer.full_list(0).enabled=true
-        -config replacer.full_list(0).matchtype=REQ_HEADER
-        -config replacer.full_list(0).matchstring=x-user-id
-        -config replacer.full_list(0).replacement=zap-scanner"
+      # No identity replacer: replacer.full_list(0) with REQ_HEADER injects a
+      # malformed empty-name ": <value>" header under ZAP 2.17.0 (packet
+      # captured on the T3 template), and strict parsers answer every request
+      # 400. The baseline therefore scans the public surface.
