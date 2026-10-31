@@ -17,6 +17,7 @@ Linked issue: <!-- Closes #123 -->
 ## Checklist
 
 - [ ] Tests cover the public entry points I changed.
+- [ ] Coverage: >=90% of changed lines, or a one-line justified exception.
 - [ ] Docs are updated in this pull request.
 - [ ] No new dependency without a row in `docs/dependencies.md`.
 - [ ] Any new top-level directory is in `layout.allow` in `scripts/repo-policy.json`.

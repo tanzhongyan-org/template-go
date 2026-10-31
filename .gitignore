@@ -21,6 +21,9 @@ coverage.txt
 # Dependency directories
 vendor/
 
+# Agent git worktrees
+/.worktrees/
+
 # OS and Editor
 .DS_Store
 .idea/
