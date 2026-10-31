@@ -13,6 +13,9 @@ HEY_API_VERSION := 0.99.0
 TYPESCRIPT_VERSION := 6.0.3
 # renovate: datasource=github-releases depName=gitleaks/gitleaks extractVersion=^v(?<version>.*)$
 GITLEAKS_VERSION := 8.30.1
+# Total statement coverage floor in percent. Raise it as coverage grows (ratchet
+# up only); keep raising toward 80.
+COVERAGE_FLOOR := 36
 
 AST_GREP := npx --yes --package @ast-grep/cli@$(AST_GREP_VERSION) ast-grep
 MARKDOWNLINT := npx --yes markdownlint-cli2@$(MARKDOWNLINT_VERSION)
@@ -41,7 +44,8 @@ generate-check:
 	go tool sqlc diff
 
 test:
-	go test -race ./...
+	go test -race -coverprofile=coverage.out ./...
+	@go tool cover -func=coverage.out | awk -v floor=$(COVERAGE_FLOOR) '/^total:/ { sub("%","",$$3); print "coverage " $$3 "% (floor " floor "%)"; if ($$3 + 0 < floor) exit 1 }'
 
 lint:
 	golangci-lint run ./...
