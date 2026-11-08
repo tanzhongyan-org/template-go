@@ -1,7 +1,8 @@
 {
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
   "extends": ["config:recommended", "helpers:pinGitHubActionDigests"],
-  "minimumReleaseAge": "3 days",
+  "minimumReleaseAge": "14 days",
+  "timezone": "Asia/Singapore",
   "lockFileMaintenance": {
     "enabled": true,
     "schedule": ["before 5am on monday"],
@@ -24,8 +25,8 @@
       "allowedVersions": "<23"
     },
     {
-      "description": "Hold TypeScript below 7 until hey-api supports it (Makefile TYPESCRIPT_VERSION)",
-      "matchPackageNames": ["typescript"],
+      "description": "Hold typescript and typescript5 below 7: hey-api openapi-ts crashes on TypeScript 7",
+      "matchPackageNames": ["typescript", "typescript5"],
       "allowedVersions": "<7"
     }
   ],
