@@ -12,7 +12,7 @@ permissions:
 
 jobs:
   ci:
-    uses: tanzhongyan-org/.github/.github/workflows/ci.yml@33bb193f8f32e5b3f715c9e1dff6e36667d8e70d # shared CI pin, updated by Renovate
+    uses: tanzhongyan-org/.github/.github/workflows/ci.yml@770874f61526508deac7a5713e408079ba016d62 # v1
     with:
       runtime: go
       postgres-db: template_go
