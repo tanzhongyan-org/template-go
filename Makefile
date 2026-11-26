@@ -1,9 +1,9 @@
 .PHONY: setup up down dev build generate generate-check test lint fix typecheck anti-slop policy docs-lint audit licenses security openapi-client spec-check verify check template-debt
 
 # renovate: datasource=npm depName=@ast-grep/cli
-AST_GREP_VERSION := 0.51.0
+AST_GREP_VERSION := 0.51.3
 # renovate: datasource=npm depName=markdownlint-cli2
-MARKDOWNLINT_VERSION := 0.24.0
+MARKDOWNLINT_VERSION := 0.24.2
 # renovate: datasource=npm depName=@hey-api/openapi-ts
 HEY_API_VERSION := 0.99.0
 # TypeScript stays below 7: hey-api 0.99 imports the TypeScript 5 default
